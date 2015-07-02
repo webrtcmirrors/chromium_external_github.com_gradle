@@ -85,32 +85,32 @@ apply plugin:SampleLibraryRules
         file("src/main/resources/java.properties") << "origin=java"
 
         buildFile << """
-            model {
-                components {
-                    sampleLib(SampleLibrarySpec) {
-                        sources {
-                            lib(JavaSourceSet) {
-                                source.srcDir "src/main/lib"
-                            }
-                            libResources(JvmResourceSet) {
-                                source.srcDir "src/main/lib-resources"
-                            }
+model {
+    components {
+        sampleLib(SampleLibrarySpec) {
+            sources {
+                lib(JavaSourceSet) {
+                    source.srcDir "src/main/lib"
+                }
+                libResources(JvmResourceSet) {
+                    source.srcDir "src/main/lib-resources"
+                }
+            }
+            binaries {
+                sampleLibJar {
+                    sources {
+                        bin(JavaSourceSet) {
+                            source.srcDir "src/main/bin"
                         }
-                        binaries {
-                            sampleLibJar {
-                                sources {
-                                    bin(JavaSourceSet) {
-                                        source.srcDir "src/main/bin"
-                                    }
-                                    binResources(JvmResourceSet) {
-                                        source.srcDir "src/main/bin-resources"
-                                    }
-                                }
-                            }
+                        binResources(JvmResourceSet) {
+                            source.srcDir "src/main/bin-resources"
                         }
                     }
                 }
             }
+        }
+    }
+}
 """
 
         when:
