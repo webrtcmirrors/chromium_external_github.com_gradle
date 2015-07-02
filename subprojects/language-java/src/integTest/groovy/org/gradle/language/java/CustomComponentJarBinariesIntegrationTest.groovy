@@ -75,21 +75,25 @@ apply plugin:SampleLibraryRules
 
     def "custom component defined by plugin is built from Java source" () {
         given:
-        file("src/main/java/Java.java") << "public class Java {}"
-        file("src/main/resources/java.properties") << "origin=java"
+        file("src/main/lib/Lib.java") << "public class Lib {}"
+        file("src/main/lib-resources/lib.properties") << "origin=lib"
         file("src/main/bin/Bin.java") << "public class Bin {}"
         file("src/main/bin-resources/bin.properties") << "origin=bin"
+
+        // These should not be included in the resulting JAR
+        file("src/main/java/Java.java") << "public class Java {}"
+        file("src/main/resources/java.properties") << "origin=java"
 
         buildFile << """
             model {
                 components {
                     sampleLib(SampleLibrarySpec) {
                         sources {
-                            java(JavaSourceSet) {
-                                source.srcDir "src/main/java"
+                            lib(JavaSourceSet) {
+                                source.srcDir "src/main/lib"
                             }
-                            resources(JvmResourceSet) {
-                                source.srcDir "src/main/resources"
+                            libResources(JvmResourceSet) {
+                                source.srcDir "src/main/lib-resources"
                             }
                         }
                         binaries {
@@ -114,7 +118,7 @@ apply plugin:SampleLibraryRules
 
         then:
         new JarTestFixture(file("build/jars/sampleLibJar/sampleLib.jar")).hasDescendants(
-            "Java.class", "java.properties", "Bin.class", "bin.properties");
+            "Lib.class", "lib.properties", "Bin.class", "bin.properties");
     }
 
 }
