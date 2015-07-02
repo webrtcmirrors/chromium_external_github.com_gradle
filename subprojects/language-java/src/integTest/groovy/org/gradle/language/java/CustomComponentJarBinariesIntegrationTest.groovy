@@ -83,7 +83,7 @@ apply plugin:SampleLibraryRules
         buildFile << """
             model {
                 components {
-                    myLib(SampleLibrarySpec) {
+                    sampleLib(SampleLibrarySpec) {
                         sources {
                             java(JavaSourceSet) {
                                 source.srcDir "src/main/java"
@@ -93,7 +93,7 @@ apply plugin:SampleLibraryRules
                             }
                         }
                         binaries {
-                            myLibJar {
+                            sampleLibJar {
                                 sources {
                                     bin(JavaSourceSet) {
                                         source.srcDir "src/main/bin"
@@ -113,7 +113,7 @@ apply plugin:SampleLibraryRules
         succeeds "assemble"
 
         then:
-        new JarTestFixture(file("build/jars/myLibJar/myLib.jar")).hasDescendants(
+        new JarTestFixture(file("build/jars/sampleLibJar/sampleLib.jar")).hasDescendants(
             "Java.class", "java.properties", "Bin.class", "bin.properties");
     }
 
