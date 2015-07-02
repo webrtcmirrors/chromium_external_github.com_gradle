@@ -75,10 +75,17 @@ apply plugin:SampleLibraryRules
 
     def "custom component defined by plugin is built from Java source" () {
         given:
-        file("src/main/lib/Lib.java") << "public class Lib {}"
-        file("src/main/lib-resources/lib.properties") << "origin=lib"
-        file("src/main/bin/Bin.java") << "public class Bin {}"
-        file("src/main/bin-resources/bin.properties") << "origin=bin"
+        file("src/lib1/java/Lib1.java") << "public class Lib1 {}"
+        file("src/lib1/resources/sample.properties") << "origin=lib1"
+
+        file("src/lib2/java/Lib2.java") << "public class Lib2 {}"
+        file("src/lib2/resources/sample.properties") << "origin=lib2"
+
+        file("src/sampleLib/lib/Sample.java") << "public class Sample extends Lib1 {}"
+        file("src/sampleLib/libResources/sample.properties") << "origin=sample"
+
+        file("src/sampleLib/bin/Bin.java") << "public class Bin extends Lib2 {}"
+        file("src/sampleLib/binResources/bin.properties") << "origin=bin"
 
         // These should not be included in the resulting JAR
         file("src/main/java/Java.java") << "public class Java {}"
@@ -87,23 +94,29 @@ apply plugin:SampleLibraryRules
         buildFile << """
 model {
     components {
+        lib1(JvmLibrarySpec)
+        lib2(JvmLibrarySpec)
+
         sampleLib(SampleLibrarySpec) {
             sources {
                 lib(JavaSourceSet) {
-                    source.srcDir "src/main/lib"
+                    dependencies {
+                        library "lib1"
+                    }
                 }
-                libResources(JvmResourceSet) {
-                    source.srcDir "src/main/lib-resources"
-                }
+                libResources(JvmResourceSet) {}
             }
             binaries {
                 sampleLibJar {
                     sources {
                         bin(JavaSourceSet) {
-                            source.srcDir "src/main/bin"
+                            source.srcDir "src/sampleLib/bin"
+                            dependencies {
+                                library "lib2"
+                            }
                         }
                         binResources(JvmResourceSet) {
-                            source.srcDir "src/main/bin-resources"
+                            source.srcDir "src/sampleLib/binResources"
                         }
                     }
                 }
@@ -118,7 +131,12 @@ model {
 
         then:
         new JarTestFixture(file("build/jars/sampleLibJar/sampleLib.jar")).hasDescendants(
-            "Lib.class", "lib.properties", "Bin.class", "bin.properties");
+            "Sample.class",
+            "sample.properties",
+
+            "Bin.class",
+            "bin.properties"
+        );
     }
 
 }
