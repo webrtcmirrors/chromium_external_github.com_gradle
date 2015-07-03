@@ -47,9 +47,6 @@ class SampleLibraryRules extends RuleSource {
     public void createBinaries(ModelMap<JarBinarySpec> binaries, SampleLibrarySpec library,
                                PlatformResolvers platforms, BinaryNamingSchemeBuilder namingSchemeBuilder,
                                @Path("buildDir") File buildDir, ServiceRegistry serviceRegistry, JavaToolChainRegistry toolChains) {
-        def binariesDir = new File(buildDir, "jars")
-        def classesDir = new File(buildDir, "classes")
-
         def defaultJavaPlatformName = new DefaultJavaPlatform(JavaVersion.current()).name
         def platformRequirement = DefaultPlatformRequirement.create(defaultJavaPlatformName)
         def platform = platforms.resolve(JavaPlatform, platformRequirement)
@@ -60,11 +57,6 @@ class SampleLibraryRules extends RuleSource {
             binary.baseName = library.name
             binary.toolChain = toolChain
             binary.targetPlatform = platform
-
-            def outputDir = new File(classesDir, binary.name)
-            binary.classesDir = outputDir
-            binary.resourcesDir = outputDir
-            binary.jarFile = new File(binariesDir, String.format("%s/%s.jar", binary.name, library.name))
         }
     }
 }
