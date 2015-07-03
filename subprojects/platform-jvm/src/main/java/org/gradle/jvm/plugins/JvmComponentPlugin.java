@@ -17,6 +17,7 @@ package org.gradle.jvm.plugins;
 
 import org.apache.commons.lang.StringUtils;
 import org.gradle.api.*;
+import org.gradle.internal.TriAction;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.jvm.JarBinarySpec;
 import org.gradle.jvm.JvmLibrarySpec;
@@ -31,6 +32,8 @@ import org.gradle.jvm.tasks.Jar;
 import org.gradle.jvm.toolchain.JavaToolChainRegistry;
 import org.gradle.jvm.toolchain.internal.DefaultJavaToolChainRegistry;
 import org.gradle.model.*;
+import org.gradle.model.internal.core.*;
+import org.gradle.model.internal.core.rule.describe.MethodModelRuleDescriptor;
 import org.gradle.model.internal.registry.ModelRegistry;
 import org.gradle.model.internal.type.ModelType;
 import org.gradle.platform.base.*;
@@ -39,6 +42,7 @@ import org.gradle.util.CollectionUtils;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 
@@ -57,7 +61,23 @@ public class JvmComponentPlugin implements Plugin<Project> {
 
     @Override
     public void apply(Project project) {
-        modelRegistry.getRoot().applyToAllLinksTransitive(ModelType.of(JarBinarySpec.class), JarBinaryRules.class);
+        Method method;
+        try {
+            method = JvmComponentPlugin.class.getDeclaredMethod("apply", Project.class);
+        } catch (NoSuchMethodException e) {
+            method = null;
+        }
+        modelRegistry.getRoot().applyToAllLinksTransitive(ModelActionRole.Defaults, DirectNodeInputUsingModelAction.of(
+                ModelReference.of(ModelType.of(JarBinarySpec.class)),
+                MethodModelRuleDescriptor.of(JvmComponentPlugin.class, method),
+                Collections.<ModelReference<?>>singletonList(ModelReference.of(ModelPath.path("buildDir"))),
+                new TriAction<MutableModelNode, JarBinarySpec, List<ModelView<?>>>() {
+                    @Override
+                    public void execute(MutableModelNode mutableModelNode, JarBinarySpec jarBinarySpec, List<ModelView<?>> modelViews) {
+                        // todo: inline
+                        new JarBinaryRules().configureJarBinaries(jarBinarySpec, (File) modelViews.get(0).getInstance());
+                    }
+                }));
     }
 
     @SuppressWarnings("UnusedDeclaration")
