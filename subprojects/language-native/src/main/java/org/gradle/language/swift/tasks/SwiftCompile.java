@@ -22,7 +22,10 @@ import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Incubating;
 import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.ConfigurableFileTree;
 import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.FileTree;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ListProperty;
@@ -35,6 +38,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.OutputFiles;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SkipWhenEmpty;
@@ -80,7 +84,7 @@ public class SwiftCompile extends DefaultTask {
     private final RegularFileProperty moduleFile;
     private final ConfigurableFileCollection modules;
     private final ListProperty<String> compilerArgs;
-    private final DirectoryProperty objectFileDir;
+    private final DirectoryProperty objectFileDirectory;
     private final ConfigurableFileCollection source;
     private final Property<SwiftVersion> sourceCompatibility;
     private final ListProperty<String> macros;
@@ -100,7 +104,7 @@ public class SwiftCompile extends DefaultTask {
         this.moduleFile = objectFactory.fileProperty();
         this.modules = getProject().files();
         this.compilerArgs = objectFactory.listProperty(String.class).empty();
-        this.objectFileDir = objectFactory.directoryProperty();
+        this.objectFileDirectory = objectFactory.directoryProperty();
         this.source = getProject().files();
         this.sourceCompatibility = objectFactory.property(SwiftVersion.class);
         this.macros = objectFactory.listProperty(String.class).empty();
@@ -209,9 +213,21 @@ public class SwiftCompile extends DefaultTask {
      *
      * @since 4.4
      */
-    @OutputDirectory
+    @Internal
     public DirectoryProperty getObjectFileDir() {
-        return objectFileDir;
+        return objectFileDirectory;
+    }
+
+    /**
+     * The tree of compiled output.
+     * 
+     * @since 5.0
+     */
+    @OutputFiles
+    public FileTree getCompiledOutput() {
+        ConfigurableFileTree objectFiles = getProject().fileTree(objectFileDirectory);
+        objectFiles.include("**/*.o");
+        return objectFiles;
     }
 
     /**
@@ -329,7 +345,7 @@ public class SwiftCompile extends DefaultTask {
 
         spec.setTargetPlatform(targetPlatform);
         spec.setTempDir(getTemporaryDir());
-        spec.setObjectFileDir(objectFileDir.get().getAsFile());
+        spec.setObjectFileDir(objectFileDirectory.get().getAsFile());
         spec.source(getSource());
         spec.setRemovedSourceFiles(removedFiles);
         spec.setChangedFiles(changedFiles);
