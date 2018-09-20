@@ -18,6 +18,7 @@ package org.gradle.integtests.fixtures.daemon
 
 import org.gradle.integtests.fixtures.ProcessFixture
 import org.gradle.integtests.fixtures.executer.GradleHandle
+import org.gradle.internal.os.OperatingSystem
 import org.gradle.test.fixtures.ConcurrentTestUtil
 
 
@@ -35,7 +36,7 @@ class DaemonClientFixture {
     }
 
     DaemonClientFixture kill() {
-        process.kill(false)
+        process.kill(OperatingSystem.current().isWindows())
         gradleHandle.waitForFailure()
         return this
     }
