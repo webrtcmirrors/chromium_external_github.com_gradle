@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.apache.commons.collections.CollectionUtils.containsAny;
+import static org.spockframework.util.CollectionUtil.containsAny;
 
 public class DaemonGradleExecuter extends NoDaemonGradleExecuter {
 

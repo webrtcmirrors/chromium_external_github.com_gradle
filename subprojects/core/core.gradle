@@ -54,7 +54,6 @@ dependencies {
     implementation libraries.asm.coordinates
     implementation libraries.asm_commons.coordinates
     implementation libraries.slf4j_api.coordinates
-    implementation libraries.commons_collections.coordinates
     implementation libraries.commons_io.coordinates
     implementation libraries.commons_lang.coordinates
     implementation libraries.jcip.coordinates

@@ -16,8 +16,6 @@
 package org.gradle.cache.internal.btree;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.collections.map.LRUMap;
-import org.gradle.internal.Cast;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -28,7 +26,16 @@ import java.util.Map;
 public class CachingBlockStore implements BlockStore {
     private final BlockStore store;
     private final Map<BlockPointer, BlockPayload> dirty = new LinkedHashMap<BlockPointer, BlockPayload>();
-    private final Map<BlockPointer, BlockPayload> indexBlockCache = Cast.uncheckedCast(new LRUMap(100));
+
+    private final int MAX_ENTRIES = 100;
+    private final Map<BlockPointer, BlockPayload> indexBlockCache = new LinkedHashMap<BlockPointer, BlockPayload>(MAX_ENTRIES, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<BlockPointer, BlockPayload> eldest) {
+            // Only keep around MAX_ENTRIES
+            return size() > MAX_ENTRIES;
+        }
+    };
+
     private final ImmutableSet<Class<? extends BlockPayload>> cacheableBlockTypes;
 
     public CachingBlockStore(BlockStore store, Collection<Class<? extends BlockPayload>> cacheableBlockTypes) {

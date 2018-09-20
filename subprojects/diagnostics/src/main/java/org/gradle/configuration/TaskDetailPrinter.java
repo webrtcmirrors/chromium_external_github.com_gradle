@@ -17,6 +17,7 @@ package org.gradle.configuration;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Task;
@@ -35,7 +36,6 @@ import static org.gradle.internal.logging.text.StyledTextOutput.Style.UserInput;
 import static org.gradle.util.CollectionUtils.sort;
 import static org.gradle.util.CollectionUtils.collect;
 import static org.gradle.util.CollectionUtils.filter;
-import static org.apache.commons.collections.CollectionUtils.intersection;
 
 public class TaskDetailPrinter {
     private final String taskPath;
@@ -200,7 +200,7 @@ public class TaskDetailPrinter {
         Map<String, Set<String>> result = new LinkedHashMap<String, Set<String>>();
         for (OptionDescriptor optionDescriptor : allOptions) {
             if (result.containsKey(optionDescriptor.getName())) {
-                Collection<String> commonValues = intersection(optionDescriptor.getAvailableValues(), result.get(optionDescriptor.getName()));
+                Collection<String> commonValues = Sets.intersection(optionDescriptor.getAvailableValues(), result.get(optionDescriptor.getName()));
                 result.put(optionDescriptor.getName(), new TreeSet<String>(commonValues));
             } else {
                 result.put(optionDescriptor.getName(), optionDescriptor.getAvailableValues());

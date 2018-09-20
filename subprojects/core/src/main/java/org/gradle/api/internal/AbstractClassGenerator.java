@@ -16,12 +16,11 @@
 
 package org.gradle.api.internal;
 
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
-import org.apache.commons.collections.map.AbstractReferenceMap;
-import org.apache.commons.collections.map.ReferenceMap;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.NonExtensible;
@@ -89,7 +88,8 @@ public abstract class AbstractClassGenerator implements ClassGenerator {
             // WeakHashMap won't work here. It keeps a strong reference to the mapping value, which is the generated class in this case
             // However, the generated class has a strong reference to the source class (by extending it), so the keys will always be
             // strongly reachable while this Class is strongly reachable. Use weak references for both key and value of the mapping instead.
-            cache = new ReferenceMap(AbstractReferenceMap.WEAK, AbstractReferenceMap.WEAK);
+            // TODO: Does not need to be concurrent
+            cache = CacheBuilder.newBuilder().weakKeys().weakValues().<Class<?>, Class<?>>build().asMap();
             GENERATED_CLASSES.put(getClass(), cache);
         }
         Class<?> generatedClass = cache.get(type);
