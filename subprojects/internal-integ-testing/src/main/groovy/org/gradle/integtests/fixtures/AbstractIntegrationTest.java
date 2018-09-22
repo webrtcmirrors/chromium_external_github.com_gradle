@@ -23,6 +23,7 @@ import org.gradle.integtests.fixtures.executer.GradleDistribution;
 import org.gradle.integtests.fixtures.executer.GradleExecuter;
 import org.gradle.integtests.fixtures.executer.IntegrationTestBuildContext;
 import org.gradle.integtests.fixtures.executer.UnderDevelopmentGradleDistribution;
+import org.gradle.integtests.fixtures.flaky.IgnoreKnownFlakyTestRule;
 import org.gradle.test.fixtures.file.TestFile;
 import org.gradle.test.fixtures.file.TestNameTestDirectoryProvider;
 import org.gradle.test.fixtures.ivy.IvyFileRepository;
@@ -36,6 +37,9 @@ import java.io.File;
 public abstract class AbstractIntegrationTest {
     @Rule
     public final TestNameTestDirectoryProvider testDirectoryProvider = new TestNameTestDirectoryProvider();
+
+    @Rule
+    public final IgnoreKnownFlakyTestRule ignoreKnownFlakyTestRule = new IgnoreKnownFlakyTestRule();
 
     public final GradleDistribution distribution = new UnderDevelopmentGradleDistribution(getBuildContext());
     public final GradleContextualExecuter executer = new GradleContextualExecuter(distribution, testDirectoryProvider, getBuildContext());

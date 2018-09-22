@@ -25,6 +25,7 @@ import org.gradle.integtests.fixtures.daemon.DaemonsFixture
 import org.gradle.integtests.fixtures.executer.GradleDistribution
 import org.gradle.integtests.fixtures.executer.IntegrationTestBuildContext
 import org.gradle.integtests.fixtures.executer.UnderDevelopmentGradleDistribution
+import org.gradle.integtests.fixtures.flaky.IgnoreKnownFlakyTest
 import org.gradle.test.fixtures.file.CleanupTestDirectory
 import org.gradle.test.fixtures.file.TestDistributionDirectoryProvider
 import org.gradle.test.fixtures.file.TestFile
@@ -58,6 +59,7 @@ import static spock.lang.Retry.Mode.SETUP_FEATURE_CLEANUP
 @TargetGradleVersion('>=1.2')
 @RunWith(ToolingApiCompatibilitySuiteRunner)
 @Retry(condition = { onIssueWithReleasedGradleVersion(instance, failure) }, mode = SETUP_FEATURE_CLEANUP, count = 2)
+@IgnoreKnownFlakyTest
 abstract class ToolingApiSpecification extends Specification {
 
     @Rule
