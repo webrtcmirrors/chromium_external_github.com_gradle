@@ -29,7 +29,8 @@ import java.util.List;
 public class IgnoreKnownFlakyTestRule implements TestRule {
     private static final List<String> KNOWN_FLAKY_TEST_MESSAGES = Arrays.asList(
         "An existing connection was forcibly closed by the remote host",
-        "An established connection was aborted by the software in your host machine" // https://github.com/gradle/gradle-private/issues/763
+        "An established connection was aborted by the software in your host machine", // https://github.com/gradle/gradle-private/issues/763
+        "zip END header not found" // https://github.com/gradle/gradle-private/issues/1537
     );
 
     @Override
