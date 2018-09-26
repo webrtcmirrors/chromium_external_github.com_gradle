@@ -57,6 +57,11 @@ public class MutationGuards {
         }
 
         @Override
+        public <T> boolean isSubjectMutationAllowed(T subject) {
+            return true;
+        }
+
+        @Override
         public void assertMutationAllowed(String methodName, Object target) {
             // do nothing
         }

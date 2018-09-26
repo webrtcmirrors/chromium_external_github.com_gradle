@@ -1249,4 +1249,50 @@ class DeferredTaskDefinitionIntegrationTest extends AbstractIntegrationSpec {
         where:
         api << ["create", "register"]
     }
+
+    private Map<String, String> getTaskMutationMethods() {
+        return [
+            "Task.dependsOn(Object...)": "dependsOn(it)",
+            "Task.setDependsOn(Iterable)": "setDependsOn([it])",
+        ]
+    }
+
+    private Map<String, String> getTaskQueryMethods() {
+        return [
+            "Task#getDependsOn()": "getDependsOn()",
+        ]
+    }
+
+    @Unroll
+    def "disallow external task modification #mutationMethods.key"() {
+        buildFile << """
+            def a = tasks.create("a")
+            tasks.register("b") {
+                a.${mutationMethods.value}
+            }.get()
+        """
+
+        expect:
+        fails("help")
+        failure.assertHasCause("Cannot call ${mutationMethods.key} on task ':a' in the current context.")
+
+        where:
+        mutationMethods << getTaskMutationMethods()
+    }
+
+    @Unroll
+    def "allow external task modification #queryMethods.key"() {
+        buildFile << """
+            def a = tasks.create("a")
+            tasks.register("b") {
+                a.${queryMethods.value}
+            }.get()
+        """
+
+        expect:
+        fails("help")
+
+        where:
+        queryMethods << getTaskQueryMethods()
+    }
 }

@@ -26,44 +26,67 @@ public class DefaultMutationGuard extends AbstractMutationGuard {
             return Boolean.TRUE;
         }
     };
+    private ThreadLocal<Object> mutatingSubject = new ThreadLocal<Object>() {
+        @Override
+        protected Object initialValue() {
+            return null;
+        }
+    };
 
     @Override
     public boolean isMutationAllowed() {
         return isMutationAllowed.get();
     }
 
+    @Override
+    public <T> boolean isSubjectMutationAllowed(T subject) {
+        Object o = mutatingSubject.get();
+        return o.equals(subject);
+    }
+
+    private <T> T getAndSetMutatingSubject(T newSubject) {
+        T result = (T)mutatingSubject.get();
+        mutatingSubject.set(newSubject);
+        return result;
+    }
+
+    private boolean getAndSetMutationAllowed(boolean newMutationAllowed) {
+        boolean result = isMutationAllowed.get();
+        isMutationAllowed.set(newMutationAllowed);
+        return result;
+    }
+
     protected <T> Action<? super T> newActionWithMutation(final Action<? super T> action, final boolean allowMutationMethods) {
         return new Action<T>() {
             @Override
             public void execute(T t) {
-                boolean oldIsMutationAllowed = isMutationAllowed.get();
-                isMutationAllowed.set(allowMutationMethods);
+                boolean oldIsMutationAllowed = getAndSetMutationAllowed(allowMutationMethods);
+                T oldMutatingSubject = getAndSetMutatingSubject(t);
                 try {
                     action.execute(t);
                 } finally {
-                    isMutationAllowed.set(oldIsMutationAllowed);
+                    getAndSetMutatingSubject(oldMutatingSubject);
+                    getAndSetMutationAllowed(oldIsMutationAllowed);
                 }
             }
         };
     }
 
     protected void runWithMutation(final Runnable runnable, boolean allowMutationMethods) {
-        boolean oldIsMutationAllowed = isMutationAllowed.get();
-        isMutationAllowed.set(allowMutationMethods);
+        boolean oldIsMutationAllowed = getAndSetMutationAllowed(allowMutationMethods);
         try {
             runnable.run();
         } finally {
-            isMutationAllowed.set(oldIsMutationAllowed);
+            getAndSetMutationAllowed(oldIsMutationAllowed);
         }
     }
 
     protected <I> I createWithMutation(final Factory<I> factory, boolean allowMutationMethods) {
-        boolean oldIsMutationAllowed = isMutationAllowed.get();
-        isMutationAllowed.set(allowMutationMethods);
+        boolean oldIsMutationAllowed = getAndSetMutationAllowed(allowMutationMethods);
         try {
             return factory.create();
         } finally {
-            isMutationAllowed.set(oldIsMutationAllowed);
+            getAndSetMutationAllowed(oldIsMutationAllowed);
         }
     }
 }

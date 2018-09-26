@@ -18,6 +18,7 @@ package org.gradle.api.internal.tasks;
 
 import groovy.util.ObservableList;
 import org.gradle.api.Task;
+import org.gradle.api.internal.MutationGuard;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.changedetection.state.ImplementationSnapshot;
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher;
@@ -29,13 +30,18 @@ import static org.gradle.util.GUtil.uncheckedCall;
 
 public class TaskMutator {
     private final TaskInternal task;
+    private final MutationGuard mutationGuard;
     private boolean executingleftShiftAction;
 
-    public TaskMutator(TaskInternal task) {
+    public TaskMutator(TaskInternal task, MutationGuard mutationGuard) {
         this.task = task;
+        this.mutationGuard = mutationGuard;
     }
 
     public void mutate(String method, Runnable action) {
+        if (task.getState().isConfigurable() && !mutationGuard.isSubjectMutationAllowed(task)) {
+            throw new IllegalStateException(formatMutation(method));
+        }
         if (!task.getState().isConfigurable()) {
             throw new IllegalStateException(format(method));
         }
@@ -43,6 +49,9 @@ public class TaskMutator {
     }
 
     public <T> T mutate(String method, Callable<T> action) {
+        if (task.getState().isConfigurable() && !mutationGuard.isSubjectMutationAllowed(task)) {
+            throw new IllegalStateException(formatMutation(method));
+        }
         if (!task.getState().isConfigurable()) {
             throw new IllegalStateException(format(method));
         }
@@ -93,6 +102,10 @@ public class TaskMutator {
             return String.format("Cannot call %s on %s after task has started execution. Check the configuration of %s as you may have misused '<<' at task declaration.", method, task, task);
         }
         return String.format("Cannot call %s on %s after task has started execution.", method, task);
+    }
+
+    private String formatMutation(String method) {
+        return String.format("Cannot call %s on %s in the current context.", method, task);
     }
 
     private class LeftShiftTaskAction implements ContextAwareTaskAction {

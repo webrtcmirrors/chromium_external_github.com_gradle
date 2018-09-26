@@ -62,6 +62,8 @@ public interface MutationGuard {
      */
     boolean isMutationAllowed();
 
+    <T> boolean isSubjectMutationAllowed(T subject);
+
     /**
      * Throws exception when mutation is not allowed.
      *
