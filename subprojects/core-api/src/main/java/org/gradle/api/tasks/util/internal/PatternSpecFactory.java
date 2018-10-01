@@ -17,7 +17,6 @@
 package org.gradle.api.tasks.util.internal;
 
 import com.google.common.collect.Lists;
-import org.apache.tools.ant.DirectoryScanner;
 import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.file.RelativePath;
 import org.gradle.api.internal.file.RelativePathSpec;
@@ -27,8 +26,8 @@ import org.gradle.api.specs.Specs;
 import org.gradle.api.tasks.util.PatternSet;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +79,7 @@ public class PatternSpecFactory {
 
     private synchronized Spec<FileTreeElement> getDefaultExcludeSpec(boolean caseSensitive) {
         Spec<FileTreeElement> specs = defaultExcludeSpecs.get(caseSensitive);
-        List<String> defaultExcludes = Arrays.asList(DirectoryScanner.getDefaultExcludes());
+        List<String> defaultExcludes = Collections.emptyList(); // Arrays.asList(DirectoryScanner.getDefaultExcludes());
 
         if (specs == null) {
             specs = updateDefaultExcludeCache(defaultExcludes, caseSensitive);
