@@ -126,7 +126,6 @@ val groovyBuildScriptProjects = listOf(
     "osgi",
     "docs",
     "signing",
-    "native",
     "performance",
     "reporting",
     "publish",
