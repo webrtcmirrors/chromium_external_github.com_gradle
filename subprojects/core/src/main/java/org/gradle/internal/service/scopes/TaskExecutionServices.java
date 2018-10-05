@@ -120,6 +120,7 @@ public class TaskExecutionServices {
                                     BuildInvocationScopeId buildInvocationScopeId,
                                     BuildCancellationToken buildCancellationToken,
                                     TaskExecutionListener taskExecutionListener,
+                                    WorkerLeaseService workerLeaseService,
                                     TimeoutHandler timeoutHandler
     ) {
 
@@ -141,6 +142,7 @@ public class TaskExecutionServices {
                 buildCacheController,
                 taskOutputChangesListener,
                 taskOutputCacheCommandFactory,
+                workerLeaseService,
                 executer
             );
         }

@@ -33,6 +33,7 @@ import org.gradle.caching.internal.tasks.TaskOutputCacheCommandFactory
 import org.gradle.caching.internal.tasks.TaskOutputCachingBuildCacheKey
 import org.gradle.caching.internal.tasks.UnrecoverableTaskOutputUnpackingException
 import org.gradle.internal.id.UniqueId
+import org.gradle.test.fixtures.work.TestWorkerLeaseService
 import spock.lang.Specification
 
 class SkipCachedTaskExecuterTest extends Specification {
@@ -50,10 +51,11 @@ class SkipCachedTaskExecuterTest extends Specification {
     def taskOutputGenerationListener = Mock(TaskOutputChangesListener)
     def loadCommand = Mock(BuildCacheLoadCommand)
     def storeCommand = Mock(BuildCacheStoreCommand)
+    def workerLeaseService = new TestWorkerLeaseService()
     def buildCacheCommandFactory = Mock(TaskOutputCacheCommandFactory)
     def outputFingerprints = [:]
 
-    def executer = new SkipCachedTaskExecuter(buildCacheController, taskOutputGenerationListener, buildCacheCommandFactory, delegate)
+    def executer = new SkipCachedTaskExecuter(buildCacheController, taskOutputGenerationListener, buildCacheCommandFactory, workerLeaseService, delegate)
 
     def "skip task when cached results exist"() {
         def originId = UniqueId.generate()
