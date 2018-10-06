@@ -65,6 +65,7 @@ class CachedTaskActionIntegrationTest extends AbstractIntegrationSpec implements
             }
  
             task taskB {
+                dependsOn taskA
                 def output = file("build/task-b/output.txt")
                 inputs.file input
                 outputs.file output

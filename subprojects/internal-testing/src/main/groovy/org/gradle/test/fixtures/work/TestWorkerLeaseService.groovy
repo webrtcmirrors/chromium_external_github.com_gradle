@@ -60,7 +60,7 @@ class TestWorkerLeaseService implements WorkerLeaseService {
 
     @Override
     def <T> T withoutProjectLock(Factory<T> action) {
-        return action.call()
+        return action.create()
     }
 
     @Override
