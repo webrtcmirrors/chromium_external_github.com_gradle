@@ -78,7 +78,7 @@ class RemoteProject extends DefaultTask {
      * Directory where the project template should be copied.
      */
     @OutputDirectory
-    File outputDirectory = project.file("$project.buildDir/$name")
+    File outputDirectory = project.file("$project.buildDir/samples/$name")
 
     @TaskAction
     void checkout() {

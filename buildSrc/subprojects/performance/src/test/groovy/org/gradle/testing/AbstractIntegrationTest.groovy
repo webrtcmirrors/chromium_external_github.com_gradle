@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.gradle.plugins.performance
+package org.gradle.testing
 
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner

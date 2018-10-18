@@ -43,7 +43,7 @@ tasks.register("gradleBuildBaseline", RemoteProject) {
         }
         classpath = sourceSets.performanceTest.runtimeClasspath
         main = 'org.gradle.performance.generator.TestProjectGenerator'
-        args name, buildDir.absolutePath
+        args name, new File(buildDir, "samples").absolutePath
     }
 }
 

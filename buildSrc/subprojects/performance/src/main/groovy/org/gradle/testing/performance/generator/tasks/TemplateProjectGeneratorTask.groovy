@@ -38,7 +38,7 @@ abstract class TemplateProjectGeneratorTask extends ProjectGeneratorTask {
     File sharedTemplateDirectory
 
     TemplateProjectGeneratorTask() {
-        destDir = project.file("${project.buildDir}/${name}")
+        destDir = project.file("${project.buildDir}/samples/${name}")
         templateDirectory = project.file("src/templates")
     }
 

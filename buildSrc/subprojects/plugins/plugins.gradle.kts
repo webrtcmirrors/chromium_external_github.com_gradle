@@ -30,10 +30,6 @@ gradlePlugin {
             id = "gradlebuild.build-types"
             implementationClass = "org.gradle.plugins.buildtypes.BuildTypesPlugin"
         }
-        register("performanceTest") {
-            id = "gradlebuild.performance-test"
-            implementationClass = "org.gradle.plugins.performance.PerformanceTestPlugin"
-        }
         register("unitTestAndCompile") {
             id = "gradlebuild.unittest-and-compile"
             implementationClass = "org.gradle.gradlebuild.unittestandcompile.UnitTestAndCompilePlugin"

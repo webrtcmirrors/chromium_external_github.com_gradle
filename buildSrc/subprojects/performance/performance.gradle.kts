@@ -1,3 +1,8 @@
+
+plugins {
+    `java-gradle-plugin`
+}
+
 apply(plugin = "org.gradle.kotlin.kotlin-dsl")
 
 dependencies {
@@ -15,3 +20,13 @@ dependencies {
     implementation("javax.activation:activation:1.1.1")
     implementation("javax.xml.bind:jaxb-api:2.2.12")
 }
+
+gradlePlugin {
+    plugins {
+        register("performanceTest") {
+            id = "gradlebuild.performance-test"
+            implementationClass = "org.gradle.plugins.performance.PerformanceTestPlugin"
+        }
+    }
+}
+

@@ -28,6 +28,9 @@ dependencies {
         performanceTestRuntime(it)
     }
 
+    performanceTestImplementation(project(":internalPerformanceTesting"))
+    junit(library("junit"))
+
     testFixturesApi(project(":internalPerformanceTesting"))
 }
 

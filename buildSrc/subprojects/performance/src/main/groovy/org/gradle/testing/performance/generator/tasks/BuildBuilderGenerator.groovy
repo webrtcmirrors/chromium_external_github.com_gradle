@@ -77,7 +77,7 @@ class BuildBuilderGenerator extends ProjectGeneratorTask {
     BuildBuilderGenerator(ObjectFactory objectFactory, ProviderFactory providerFactory) {
         buildBuilderInstall = objectFactory.directoryProperty()
         generatedDir = objectFactory.directoryProperty()
-        generatedDir.set(project.layout.buildDirectory.dir(getName()))
+        generatedDir.set(project.layout.buildDirectory.dir("samples/" + getName()))
         args = objectFactory.listProperty(String)
         args.set(providerFactory.provider(new Callable<Iterable<String>>() {
             @Override

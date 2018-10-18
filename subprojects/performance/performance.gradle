@@ -21,7 +21,9 @@ apply from: 'templates.gradle'
 dependencies {
     compile project(':distributionsDependencies')
 
+    performanceTestImplementation project(":internalPerformanceTesting")
     performanceTestImplementation libraries.commons_compress.coordinates
+    junit libraries.junit.coordinates
 
     // so that all Gradle features are available
     performanceTestRuntime allTestRuntimeDependencies

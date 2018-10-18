@@ -19,7 +19,7 @@ package org.gradle.performance.fixture
 class TestProjectLocator {
 
     File findProjectDir(String name) {
-        def dir = new File("build/$name").absoluteFile
+        def dir = new File("build/samples/$name").absoluteFile
         if (!dir.directory) {
             throw new IllegalArgumentException("Did not find test project at: '$dir.absolutePath'. Please run 'gradlew $name' to generate the test project.")
         }
