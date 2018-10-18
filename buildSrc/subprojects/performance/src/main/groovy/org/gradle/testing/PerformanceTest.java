@@ -25,6 +25,8 @@ import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.gradlebuild.test.integrationtests.DistributionTest;
 import org.gradle.process.CommandLineArgumentProvider;
@@ -179,6 +181,7 @@ public class PerformanceTest extends DistributionTest {
         this.databaseParameters.putAll(databaseConnectionParameters);
     }
 
+    @PathSensitive(PathSensitivity.RELATIVE)
     @InputDirectory
     public DirectoryProperty getSamplesDirectory() {
         return samplesDirectory;

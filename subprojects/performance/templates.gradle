@@ -35,7 +35,7 @@ tasks.register("gradleBuildBaseline", RemoteProject) {
  'mediumMonolithicJavaProject', 'mediumJavaMultiProject', 'mediumJavaMultiProjectWithTestNG', 'mediumJavaCompositeBuild', 'mediumJavaPredefinedCompositeBuild',
  'smallJavaMultiProject'].each { template ->
     tasks.register(template, JavaExecProjectGeneratorTask) {
-        outputs.dir new File(buildDir, template)
+        outputs.dir new File(buildDir, "samples/" + template)
         outputs.cacheIf { true }
         inputs.property('template', template)
         inputs.property('args') { // Arguments are covered by the testProjectName and the outputs. We don't want them to contain the absolute path
@@ -75,7 +75,7 @@ tasks.register("createLotsOfTasks", JvmProjectGeneratorTask) {
 }
 
 tasks.register("generateLotsOfDeprecationWarnings", Copy) {
-    into "build/$name"
+    into "build/samples/$name"
     from "src/templates/$name"
 }
 
@@ -379,7 +379,7 @@ tasks.register("largeNativeBuildPrebuilt", GradleBuild) {
 }
 
 tasks.register("archivePerformanceProject", Copy) {
-    into "build/$name"
+    into "build/samples/$name"
     from "src/templates/$name"
 }
 
