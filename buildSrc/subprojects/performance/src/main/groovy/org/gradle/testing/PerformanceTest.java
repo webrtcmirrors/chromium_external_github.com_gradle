@@ -16,28 +16,26 @@
 
 package org.gradle.testing;
 
-import org.gradle.api.tasks.options.Option;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.Nested;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.gradlebuild.test.integrationtests.DistributionTest;
-import org.gradle.api.specs.Spec;
 import org.gradle.api.Task;
-
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.CacheableTask;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.Internal;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.options.Option;
+import org.gradle.gradlebuild.test.integrationtests.DistributionTest;
+import org.gradle.process.CommandLineArgumentProvider;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Map.Entry;
-import javax.inject.Inject;
-
-import org.gradle.process.CommandLineArgumentProvider;
 
 /**
  * A test that checks execution time and memory consumption.
@@ -56,6 +54,7 @@ public class PerformanceTest extends DistributionTest {
     private final Map<String, String> databaseParameters = new HashMap<>();
 
     private File debugArtifactsDirectory = new File(getProject().getBuildDir(), getName());
+    private final DirectoryProperty samplesDirectory = getProject().getObjects().directoryProperty();
 
     public PerformanceTest() {
         getJvmArgumentProviders().add(new PerformanceTestJvmArgumentsProvider());
@@ -178,6 +177,11 @@ public class PerformanceTest extends DistributionTest {
 
     public void addDatabaseParameters(Map<String, String> databaseConnectionParameters) {
         this.databaseParameters.putAll(databaseConnectionParameters);
+    }
+
+    @InputDirectory
+    public DirectoryProperty getSamplesDirectory() {
+        return samplesDirectory;
     }
 
     private class PerformanceTestJvmArgumentsProvider implements CommandLineArgumentProvider {

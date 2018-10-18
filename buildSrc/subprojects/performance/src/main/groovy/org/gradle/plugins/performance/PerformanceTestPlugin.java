@@ -241,6 +241,7 @@ public class PerformanceTestPlugin implements Plugin<Project> {
         task.getBinaryDistributions().setBinZipRequired(true);
         task.getLibsRepository().setRequired(true);
         task.setMaxParallelForks(1);
+        task.getSamplesDirectory().set(project.getLayout().getBuildDirectory().dir("samples"));
 
         Object baselines = task.getProject().findProperty(PropertyNames.baselines);
         if (baselines!=null) {
