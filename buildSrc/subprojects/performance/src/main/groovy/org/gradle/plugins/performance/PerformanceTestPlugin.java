@@ -123,10 +123,10 @@ public class PerformanceTestPlugin implements Plugin<Project> {
             }
         });
 
-        prepareSampleTasks(tasks);
+        TaskProvider<Task> prepareSamples = prepareSampleTasks(tasks);
 
         createLocalPerformanceTestTasks(project, performanceTest);
-        createDistributionPerformanceTestTasks(project, performanceTest);
+        createDistributionPerformanceTestTasks(project, performanceTest, prepareSamples);
 
         createRebaselineTask(tasks, performanceTest);
 
@@ -275,12 +275,13 @@ public class PerformanceTestPlugin implements Plugin<Project> {
         }
     }
 
-    private void createDistributionPerformanceTestTasks(Project project, SourceSet performanceTest) {
+    private void createDistributionPerformanceTestTasks(Project project, SourceSet performanceTest, TaskProvider<Task> prepareSamples) {
         createDistributedPerformanceTestTask(project, "distributedPerformanceTest", performanceTest, new Action<PerformanceTest>() {
             @Override
             public void execute(PerformanceTest performanceTest) {
                 performanceTest.setChannel("commits");
                 excludePerformanceExperiments.execute(performanceTest);
+                performanceTest.dependsOn(prepareSamples);
             }
         });
 
@@ -289,6 +290,7 @@ public class PerformanceTestPlugin implements Plugin<Project> {
             public void execute(PerformanceTest performanceTest) {
                 performanceTest.setChannel("experiments");
                 excludePerformanceExperiments.execute(performanceTest);
+                performanceTest.dependsOn(prepareSamples);
             }
         });
 
@@ -298,6 +300,7 @@ public class PerformanceTestPlugin implements Plugin<Project> {
                 performanceTest.setBaselines(Config.baseLineList.toString());
                 performanceTest.setChecks("none");
                 performanceTest.setChannel("historical");
+                performanceTest.dependsOn(prepareSamples);
             }
         });
     }
