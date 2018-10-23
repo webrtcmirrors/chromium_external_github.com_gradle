@@ -24,8 +24,6 @@ import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.publish.maven.internal.publication.MavenPublicationInternal;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.PathSensitivity;
-import org.gradle.internal.Factory;
-import org.gradle.internal.logging.LoggingManagerInternal;
 
 import javax.inject.Inject;
 import java.util.concurrent.Callable;
@@ -96,11 +94,6 @@ public abstract class AbstractPublishToMaven extends DefaultTask {
                     )
             );
         }
-    }
-
-    @Inject
-    protected Factory<LoggingManagerInternal> getLoggingManagerFactory() {
-        throw new UnsupportedOperationException();
     }
 
     @Inject
