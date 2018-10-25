@@ -45,6 +45,16 @@ class CppLibraryIntegrationTest extends AbstractCppIntegrationTest implements Cp
     }
 
     @Override
+    protected String getProductionBinaryCompileTaskName() {
+        return "compileReleaseCpp"
+    }
+
+    @Override
+    protected String getTaskNameToAssembleProductionBinary() {
+        return "assembleRelease"
+    }
+
+    @Override
     protected void makeSingleProject() {
         buildFile << """
             apply plugin: 'cpp-library'

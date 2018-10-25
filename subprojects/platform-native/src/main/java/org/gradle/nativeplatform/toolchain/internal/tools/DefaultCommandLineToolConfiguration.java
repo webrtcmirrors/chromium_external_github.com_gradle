@@ -18,6 +18,7 @@ package org.gradle.nativeplatform.toolchain.internal.tools;
 
 import org.gradle.api.Action;
 import org.gradle.internal.Actions;
+import org.gradle.nativeplatform.toolchain.OptimizedArgsTransformer;
 import org.gradle.nativeplatform.toolchain.internal.ToolType;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.List;
 public class DefaultCommandLineToolConfiguration implements CommandLineToolConfigurationInternal {
     private final ToolType toolType;
     private List<Action<? super List<String>>> argActions = new ArrayList<Action<? super List<String>>>();
+    private OptimizedArgsTransformer optimizedTransformer;
 
     public DefaultCommandLineToolConfiguration(ToolType toolType) {
         this.toolType = toolType;
@@ -43,5 +45,15 @@ public class DefaultCommandLineToolConfiguration implements CommandLineToolConfi
     @Override
     public Action<List<String>> getArgAction() {
         return Actions.composite(argActions);
+    }
+
+    @Override
+    public OptimizedArgsTransformer getOptimizedTransformer() {
+        return optimizedTransformer;
+    }
+
+    @Override
+    public void setOptimizedTransformer(OptimizedArgsTransformer optimizedTransformer) {
+        this.optimizedTransformer = optimizedTransformer;
     }
 }

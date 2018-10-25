@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 the original author or authors.
+ * Copyright 2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,9 @@
 
 package org.gradle.nativeplatform.toolchain;
 
-import org.gradle.api.Action;
-import org.gradle.api.Incubating;
+import org.gradle.api.Transformer;
 
 import java.util.List;
 
-/**
- * An executable tool that forms part of a tool chain.
- */
-@Incubating
-public interface CommandLineToolConfiguration {
-    /**
-     * Adds an action that will be applied to the command-line arguments prior to execution.
-     */
-    void withArguments(Action<? super List<String>> arguments);
-
-    void setOptimizedTransformer(OptimizedArgsTransformer optimizedTransformer);
+public interface OptimizedArgsTransformer extends Transformer<List<String>, Boolean> {
 }

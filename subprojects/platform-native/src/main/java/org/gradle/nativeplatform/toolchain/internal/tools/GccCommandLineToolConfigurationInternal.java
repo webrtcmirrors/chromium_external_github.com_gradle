@@ -17,6 +17,7 @@ package org.gradle.nativeplatform.toolchain.internal.tools;
 
 import org.gradle.api.Action;
 import org.gradle.nativeplatform.toolchain.GccCommandLineToolConfiguration;
+import org.gradle.nativeplatform.toolchain.OptimizedArgsTransformer;
 import org.gradle.nativeplatform.toolchain.internal.ToolType;
 
 import java.util.List;
@@ -26,4 +27,6 @@ public interface GccCommandLineToolConfigurationInternal extends GccCommandLineT
     ToolType getToolType();
 
     Action<List<String>> getArgAction();
+
+    OptimizedArgsTransformer getOptimizedTransformer();
 }

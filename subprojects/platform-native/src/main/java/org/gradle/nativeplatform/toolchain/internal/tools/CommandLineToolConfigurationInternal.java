@@ -18,10 +18,13 @@ package org.gradle.nativeplatform.toolchain.internal.tools;
 
 import org.gradle.api.Action;
 import org.gradle.nativeplatform.toolchain.CommandLineToolConfiguration;
+import org.gradle.nativeplatform.toolchain.OptimizedArgsTransformer;
 
 import java.util.List;
 
 public interface CommandLineToolConfigurationInternal extends CommandLineToolConfiguration{
 
-    public Action<List<String>> getArgAction();
+    Action<List<String>> getArgAction();
+
+    OptimizedArgsTransformer getOptimizedTransformer();
 }

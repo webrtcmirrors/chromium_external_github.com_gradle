@@ -27,7 +27,7 @@ import java.util.List;
 import static org.gradle.nativeplatform.toolchain.internal.msvcpp.EscapeUserArgs.escapeUserArg;
 import static org.gradle.nativeplatform.toolchain.internal.msvcpp.EscapeUserArgs.escapeUserArgs;
 
-abstract class VisualCppCompilerArgsTransformer<T extends NativeCompileSpec> implements ArgsTransformer<T> {
+class VisualCppCompilerArgsTransformer<T extends NativeCompileSpec> implements ArgsTransformer<T> {
     @Override
     public List<String> transform(T spec) {
         List<String> args = Lists.newArrayList();
@@ -49,9 +49,8 @@ abstract class VisualCppCompilerArgsTransformer<T extends NativeCompileSpec> imp
         if (spec.isDebuggable()) {
             args.add("/Zi");
         }
-        if (spec.isOptimized()) {
-            args.add("/O2");
-        }
+
+        addOptimizedArgs(spec, args);
     }
 
     protected void addIncludeArgs(T spec, List<String> args) {
@@ -66,6 +65,12 @@ abstract class VisualCppCompilerArgsTransformer<T extends NativeCompileSpec> imp
     protected void addMacroArgs(T spec, List<String> args) {
         for (String macroArg : new MacroArgsConverter().transform(spec.getMacros())) {
             args.add(escapeUserArg("/D" + macroArg));
+        }
+    }
+
+    protected void addOptimizedArgs(T spec, List<String> args) {
+        if (spec.isOptimized()) {
+            args.add("/O2");
         }
     }
 

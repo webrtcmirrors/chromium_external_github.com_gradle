@@ -306,6 +306,10 @@ public class AvailableToolChains {
             return new LinkerOptionsFixture(new TestFile(path.toString()));
         }
 
+        public CompilerOptionsFixture compilerOptionsFor(Object path) {
+            return new CompilerOptionsFixture(new TestFile(path.toString()));
+        }
+
         public TestFile objectFile(Object path) {
             return new TestFile(path.toString() + objectFileNameSuffix);
         }

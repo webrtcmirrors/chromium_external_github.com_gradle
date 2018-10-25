@@ -20,17 +20,35 @@ import org.gradle.api.Transformer;
 import org.gradle.internal.operations.BuildOperationExecutor;
 import org.gradle.internal.work.WorkerLeaseService;
 import org.gradle.nativeplatform.internal.CompilerOutputFileNamingSchemeFactory;
+import org.gradle.nativeplatform.toolchain.OptimizedArgsTransformer;
 import org.gradle.nativeplatform.toolchain.internal.CommandLineToolContext;
 import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWorker;
 import org.gradle.nativeplatform.toolchain.internal.compilespec.CppCompileSpec;
 
+import java.util.List;
+
 class CppCompiler extends VisualCppNativeCompiler<CppCompileSpec> {
 
-    CppCompiler(BuildOperationExecutor buildOperationExecutor, CompilerOutputFileNamingSchemeFactory compilerOutputFileNamingSchemeFactory, CommandLineToolInvocationWorker commandLineToolInvocationWorker, CommandLineToolContext invocationContext, Transformer<CppCompileSpec, CppCompileSpec> specTransformer, String objectFileExtension, boolean useCommandFile, WorkerLeaseService workerLeaseService) {
-        super(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineToolInvocationWorker, invocationContext, new CppCompilerArgsTransformer(), specTransformer, objectFileExtension, useCommandFile, workerLeaseService);
+    CppCompiler(BuildOperationExecutor buildOperationExecutor, CompilerOutputFileNamingSchemeFactory compilerOutputFileNamingSchemeFactory, CommandLineToolInvocationWorker commandLineToolInvocationWorker, CommandLineToolContext invocationContext, OptimizedArgsTransformer optimizedArgsTransformer, Transformer<CppCompileSpec, CppCompileSpec> specTransformer, String objectFileExtension, boolean useCommandFile, WorkerLeaseService workerLeaseService) {
+        super(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineToolInvocationWorker, invocationContext, new CppCompilerArgsTransformer(optimizedArgsTransformer), specTransformer, objectFileExtension, useCommandFile, workerLeaseService);
     }
 
     private static class CppCompilerArgsTransformer extends VisualCppCompilerArgsTransformer<CppCompileSpec> {
+        private final OptimizedArgsTransformer optimizedArgsTransformer;
+
+        public CppCompilerArgsTransformer(OptimizedArgsTransformer optimizedArgsTransformer) {
+            this.optimizedArgsTransformer = optimizedArgsTransformer;
+        }
+
+        @Override
+        protected void addOptimizedArgs(CppCompileSpec spec, List<String> args) {
+            if (optimizedArgsTransformer != null) {
+                args.addAll(optimizedArgsTransformer.transform(spec.isOptimized()));
+            } else {
+                super.addOptimizedArgs(spec, args);
+            }
+        }
+
         @Override
         protected String getLanguageOption() {
             return "/TP";

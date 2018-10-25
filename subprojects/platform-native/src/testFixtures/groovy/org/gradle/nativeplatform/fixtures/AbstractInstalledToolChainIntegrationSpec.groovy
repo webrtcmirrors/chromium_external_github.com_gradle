@@ -71,6 +71,10 @@ allprojects { p ->
         return toolChain.linkerOptionsFor(projectDir.file("build/tmp/$taskName/options.txt"))
     }
 
+    CompilerOptionsFixture compilerOptionsFor(String taskName, TestFile projectDir = testDirectory) {
+        return toolChain.compilerOptionsFor(projectDir.file("build/tmp/$taskName/options.txt"))
+    }
+
     TestFile objectFile(Object path) {
         return toolChain.objectFile(file(path))
     }

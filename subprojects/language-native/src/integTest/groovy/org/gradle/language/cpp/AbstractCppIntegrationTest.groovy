@@ -44,10 +44,50 @@ abstract class AbstractCppIntegrationTest extends AbstractCppComponentIntegratio
         failure.assertThatCause(Matchers.containsText("C++ compiler failed while compiling broken.cpp"))
     }
 
+    def "can override compiler flag for optimization model"() {
+        given:
+        makeSingleProject()
+
+        componentUnderTest.writeToProject(testDirectory)
+
+        buildFile << """
+            model {
+                toolChains {
+                    clang(Clang) {
+                        eachPlatform { platform ->
+                            cppCompiler.optimizedTransformer { optimized ->
+                                if (optimized) {
+                                    return ['-O3']
+                                }
+                                return ['-O0']
+                            }
+                        }
+                    }
+                }
+            }
+        """
+
+        when:
+        succeeds taskNameToAssembleDevelopmentBinary
+
+        then:
+        compilerOptionsFor(developmentBinaryCompileTaskName).optimizedFlags == ['-O0']
+
+        when:
+        succeeds taskNameToAssembleProductionBinary
+
+        then:
+        compilerOptionsFor(productionBinaryCompileTaskName).optimizedFlags == ['-O3']
+    }
+
     protected abstract String getDevelopmentBinaryCompileTaskName()
+
+    protected abstract String getProductionBinaryCompileTaskName()
 
     @Override
     protected String getTaskNameToAssembleDevelopmentBinary() {
         return 'assemble'
     }
+
+    protected abstract String getTaskNameToAssembleProductionBinary()
 }

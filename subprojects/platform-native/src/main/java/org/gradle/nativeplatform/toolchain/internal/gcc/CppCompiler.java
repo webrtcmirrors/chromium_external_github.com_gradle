@@ -20,17 +20,35 @@ import org.gradle.internal.Transformers;
 import org.gradle.internal.operations.BuildOperationExecutor;
 import org.gradle.internal.work.WorkerLeaseService;
 import org.gradle.nativeplatform.internal.CompilerOutputFileNamingSchemeFactory;
+import org.gradle.nativeplatform.toolchain.OptimizedArgsTransformer;
 import org.gradle.nativeplatform.toolchain.internal.CommandLineToolContext;
 import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWorker;
 import org.gradle.nativeplatform.toolchain.internal.compilespec.CppCompileSpec;
 
+import java.util.List;
+
 class CppCompiler extends GccCompatibleNativeCompiler<CppCompileSpec>  {
 
-    CppCompiler(BuildOperationExecutor buildOperationExecutor, CompilerOutputFileNamingSchemeFactory compilerOutputFileNamingSchemeFactory, CommandLineToolInvocationWorker commandLineToolInvocationWorker, CommandLineToolContext invocationContext, String objectFileExtension, boolean useCommandFile, WorkerLeaseService workerLeaseService) {
-        super(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineToolInvocationWorker, invocationContext, new CppCompileArgsTransformer(), Transformers.<CppCompileSpec>noOpTransformer(), objectFileExtension, useCommandFile, workerLeaseService);
+    CppCompiler(BuildOperationExecutor buildOperationExecutor, CompilerOutputFileNamingSchemeFactory compilerOutputFileNamingSchemeFactory, CommandLineToolInvocationWorker commandLineToolInvocationWorker, CommandLineToolContext invocationContext, OptimizedArgsTransformer optimizedTransformer, String objectFileExtension, boolean useCommandFile, WorkerLeaseService workerLeaseService) {
+        super(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineToolInvocationWorker, invocationContext, new CppCompileArgsTransformer(optimizedTransformer), Transformers.<CppCompileSpec>noOpTransformer(), objectFileExtension, useCommandFile, workerLeaseService);
     }
 
     private static class CppCompileArgsTransformer extends GccCompilerArgsTransformer<CppCompileSpec> {
+        private final OptimizedArgsTransformer optimizedTransformer;
+
+        public CppCompileArgsTransformer(OptimizedArgsTransformer optimizedTransformer) {
+            this.optimizedTransformer = optimizedTransformer;
+        }
+
+        @Override
+        protected void addOptimizedArgs(CppCompileSpec spec, List<String> args) {
+            if (optimizedTransformer != null) {
+                args.addAll(optimizedTransformer.transform(spec.isOptimized()));
+            } else {
+                super.addOptimizedArgs(spec, args);
+            }
+        }
+
         @Override
         protected boolean isNoStandardIncludes() {
             return false;

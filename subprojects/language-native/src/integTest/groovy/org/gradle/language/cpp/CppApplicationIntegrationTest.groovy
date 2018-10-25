@@ -54,6 +54,16 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
     }
 
     @Override
+    protected String getProductionBinaryCompileTaskName() {
+        return "compileReleaseCpp"
+    }
+
+    @Override
+    protected String getTaskNameToAssembleProductionBinary() {
+        return "assembleRelease"
+    }
+
+    @Override
     protected SourceElement getComponentUnderTest() {
         return new CppApp()
     }

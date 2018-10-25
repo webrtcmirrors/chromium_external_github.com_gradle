@@ -50,6 +50,10 @@ abstract class GccCompilerArgsTransformer<T extends NativeCompileSpec> implement
         if (spec.isDebuggable()) {
             args.add("-g");
         }
+        addOptimizedArgs(spec, args);
+    }
+
+    protected void addOptimizedArgs(T spec, List<String> args) {
         if (spec.isOptimized()) {
             args.add("-O3");
         }

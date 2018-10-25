@@ -39,6 +39,16 @@ class CppBothLibraryLinkageIntegrationTest extends AbstractCppIntegrationTest {
     }
 
     @Override
+    protected String getProductionBinaryCompileTaskName() {
+        return "compileReleaseSharedCpp"
+    }
+
+    @Override
+    protected String getTaskNameToAssembleProductionBinary() {
+        return "assembleReleaseShared"
+    }
+
+    @Override
     protected String getComponentUnderTestDsl() {
         return "library"
     }
