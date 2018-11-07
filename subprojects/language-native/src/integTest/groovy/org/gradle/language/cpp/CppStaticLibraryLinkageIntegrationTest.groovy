@@ -39,8 +39,8 @@ class CppStaticLibraryLinkageIntegrationTest extends AbstractCppIntegrationTest 
     }
 
     @Override
-    protected String getDevelopmentBinaryCompileTask() {
-        return ":compileDebugCpp"
+    protected String getDevelopmentBinaryCompileTaskName() {
+        return "compileDebugCpp"
     }
 
     @Override

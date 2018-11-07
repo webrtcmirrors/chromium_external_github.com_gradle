@@ -34,8 +34,8 @@ class CppBothLibraryLinkageIntegrationTest extends AbstractCppIntegrationTest {
     }
 
     @Override
-    protected String getDevelopmentBinaryCompileTask() {
-        return ":compileDebugSharedCpp"
+    protected String getDevelopmentBinaryCompileTaskName() {
+        return "compileDebugSharedCpp"
     }
 
     @Override

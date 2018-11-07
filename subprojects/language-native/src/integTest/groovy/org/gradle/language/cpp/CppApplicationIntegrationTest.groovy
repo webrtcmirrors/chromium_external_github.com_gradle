@@ -49,8 +49,8 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
     }
 
     @Override
-    protected String getDevelopmentBinaryCompileTask() {
-        return ":compileDebugCpp"
+    protected String getDevelopmentBinaryCompileTaskName() {
+        return "compileDebugCpp"
     }
 
     @Override
