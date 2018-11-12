@@ -67,9 +67,9 @@ tasks {
             val groovyVersion = VersionNumber.parse(versionProperties["groovy"] as String)
             versionProperties["spock"] = "1.0-groovy-${groovyVersion.major}.${groovyVersion.minor}"
 
-            findLatest("guava", "com.google.guava:guava:(20,)", versionProperties)
+            findLatest("guava", "com.google.guava:guava:latest.release", versionProperties)
             findLatest("commons-math", "org.apache.commons:commons-math3:latest.release", versionProperties)
-            findLatest("kotlin", "org.jetbrains.kotlin:kotlin-gradle-plugin:(1.2,)", versionProperties)
+            findLatest("kotlin", "org.jetbrains.kotlin:kotlin-gradle-plugin:latest.release", versionProperties)
 
             val libraryVersionFile = file("src/main/resources/org/gradle/buildinit/tasks/templates/library-versions.properties")
             org.gradle.build.ReproduciblePropertiesWriter.store(
