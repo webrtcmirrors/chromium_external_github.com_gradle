@@ -19,6 +19,10 @@ package org.gradle.play.tasks;
 import com.google.common.collect.Lists;
 import org.gradle.api.Action;
 import org.gradle.api.Incubating;
+import org.gradle.api.Transformer;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.file.FileVisitDetails;
 import org.gradle.api.file.FileVisitor;
@@ -34,18 +38,25 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.compile.BaseForkOptions;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.api.tasks.incremental.InputFileDetails;
+import org.gradle.internal.Cast;
 import org.gradle.language.base.internal.compile.Compiler;
 import org.gradle.language.twirl.TwirlImports;
 import org.gradle.language.twirl.TwirlTemplateFormat;
 import org.gradle.language.twirl.internal.DefaultTwirlTemplateFormat;
 import org.gradle.platform.base.internal.toolchain.ToolProvider;
 import org.gradle.play.internal.CleaningPlayToolCompiler;
+import org.gradle.play.internal.toolchain.DaemonPlayCompiler;
 import org.gradle.play.internal.toolchain.PlayToolChainInternal;
 import org.gradle.play.internal.twirl.DefaultTwirlCompileSpec;
 import org.gradle.play.internal.twirl.TwirlCompileSpec;
+import org.gradle.play.internal.twirl.TwirlCompiler;
 import org.gradle.play.internal.twirl.TwirlCompilerFactory;
 import org.gradle.play.platform.PlayPlatform;
 import org.gradle.play.toolchain.PlayToolChain;
+import org.gradle.util.CollectionUtils;
+import org.gradle.workers.IsolationMode;
+import org.gradle.workers.WorkerConfiguration;
+import org.gradle.workers.WorkerExecutor;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -139,36 +150,41 @@ public class TwirlCompile extends SourceTask {
     }
 
     @TaskAction
-    void compile(IncrementalTaskInputs inputs) {
+    void compile() {
         RelativeFileCollector relativeFileCollector = new RelativeFileCollector();
         getSource().visit(relativeFileCollector);
-        TwirlCompileSpec spec = new DefaultTwirlCompileSpec(relativeFileCollector.relativeFiles, getOutputDirectory(), getForkOptions(), getDefaultImports(), userTemplateFormats, additionalImports);
-        if (!inputs.isIncremental()) {
-            new CleaningPlayToolCompiler<TwirlCompileSpec>(getCompiler(), getOutputs()).execute(spec);
-        } else {
-            final Set<File> sourcesToCompile = new HashSet<File>();
-            inputs.outOfDate(new Action<InputFileDetails>() {
-                public void execute(InputFileDetails inputFileDetails) {
-                    sourcesToCompile.add(inputFileDetails.getFile());
-                }
-            });
-            final Set<File> staleOutputFiles = new HashSet<File>();
-            inputs.removed(new Action<InputFileDetails>() {
-                public void execute(InputFileDetails inputFileDetails) {
-                    staleOutputFiles.add(inputFileDetails.getFile());
-                }
-            });
-            if (cleaner == null) {
-                cleaner = new TwirlStaleOutputCleaner(getOutputDirectory());
+        final TwirlCompileSpec spec = new DefaultTwirlCompileSpec(relativeFileCollector.relativeFiles, getOutputDirectory(), getForkOptions(), getDefaultImports(), userTemplateFormats, additionalImports);
+        final Set<File> twirlClasspath = resolveToolClasspath(TwirlCompilerFactory.createAdapter(platform).getDependencyNotation().toArray()).resolve();
+        WorkerExecutor workerExecutor = getWorkerExecutor();
+        workerExecutor.submit(TwirlCompileRunnable.class, new Action<WorkerConfiguration>() {
+            @Override
+            public void execute(WorkerConfiguration configuration) {
+                configuration.params(spec, getCompiler());
+                configuration.classpath(twirlClasspath);
+                configuration.setIsolationMode(IsolationMode.CLASSLOADER);
+                configuration.setDisplayName("Generating Scala source from Twirl templates");
             }
-            cleaner.execute(staleOutputFiles);
-            getCompiler().execute(spec);
-        }
+        });
     }
 
     private Compiler<TwirlCompileSpec> getCompiler() {
-        ToolProvider toolProvider = ((PlayToolChainInternal) getToolChain()).select(platform);
-        return toolProvider.newCompiler(TwirlCompileSpec.class);
+        return TwirlCompilerFactory.create(platform);
+    }
+
+    @Inject
+    protected WorkerExecutor getWorkerExecutor() {
+        throw new UnsupportedOperationException();
+    }
+
+    private Configuration resolveToolClasspath(Object... dependencyNotations) {
+        final DependencyHandler dependencyHandler = getProject().getDependencies();
+        List<Dependency> dependencies = CollectionUtils.collect(dependencyNotations, new Transformer<Dependency, Object>() {
+            public Dependency transform(Object dependencyNotation) {
+                return dependencyHandler.create(dependencyNotation);
+            }
+        });
+        Dependency[] dependenciesArray = dependencies.toArray(new Dependency[0]);
+        return getProject().getConfigurations().detachedConfiguration(dependenciesArray);
     }
 
     void setCleaner(TwirlStaleOutputCleaner cleaner) {
