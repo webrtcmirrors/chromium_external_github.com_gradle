@@ -16,8 +16,12 @@
 
 package org.gradle.gradlebuild.test.integrationtests
 
+import java.util.concurrent.TimeUnit
+
 
 /**
  * A test that verifies Gradle can be used with popular third party plugins.
  */
-open class SmokeTest : DistributionTest()
+open class SmokeTest : DumpStacktraceOnTimeoutTest() {
+    override fun determineTimeoutMillis() = TimeUnit.MINUTES.toMillis(60)
+}
