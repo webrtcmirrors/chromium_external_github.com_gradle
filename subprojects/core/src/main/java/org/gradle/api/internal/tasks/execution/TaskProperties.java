@@ -18,8 +18,8 @@ package org.gradle.api.internal.tasks.execution;
 
 import com.google.common.collect.ImmutableSortedSet;
 import org.gradle.api.NonNullApi;
-import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.TaskInternal;
+import org.gradle.api.internal.file.FileCollectionInternal;
 import org.gradle.api.internal.tasks.TaskInputFilePropertySpec;
 import org.gradle.api.internal.tasks.TaskOutputFilePropertySpec;
 import org.gradle.api.internal.tasks.TaskPropertySpec;
@@ -63,7 +63,7 @@ public interface TaskProperties {
     /**
      * The input files.
      */
-    FileCollection getInputFiles();
+    FileCollectionInternal getInputFiles();
 
     /**
      * Whether there are source files.
@@ -75,7 +75,7 @@ public interface TaskProperties {
     /**
      * The source files.
      */
-    FileCollection getSourceFiles();
+    FileCollectionInternal getSourceFiles();
 
     /**
      * Output file properties.
@@ -87,7 +87,7 @@ public interface TaskProperties {
     /**
      * The output files.
      */
-    FileCollection getOutputFiles();
+    FileCollectionInternal getOutputFiles();
 
     /**
      * Whether output properties have been declared.
@@ -97,12 +97,12 @@ public interface TaskProperties {
     /**
      * The files that represent the local state.
      */
-    FileCollection getLocalStateFiles();
+    FileCollectionInternal getLocalStateFiles();
 
     /**
      * The files that are destroyed.
      */
-    FileCollection getDestroyableFiles();
+    FileCollectionInternal getDestroyableFiles();
 
     /**
      * Validations for the properties.

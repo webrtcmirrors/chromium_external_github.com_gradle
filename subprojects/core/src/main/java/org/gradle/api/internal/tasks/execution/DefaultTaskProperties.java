@@ -20,9 +20,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import org.gradle.api.NonNullApi;
-import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.file.CompositeFileCollection;
+import org.gradle.api.internal.file.FileCollectionInternal;
 import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection;
 import org.gradle.api.internal.file.collections.FileCollectionResolveContext;
 import org.gradle.api.internal.tasks.TaskDestroyablePropertySpec;
@@ -55,14 +55,14 @@ public class DefaultTaskProperties implements TaskProperties {
     private final Factory<Map<String, Object>> inputPropertyValues;
     private final ImmutableSortedSet<TaskInputFilePropertySpec> inputFileProperties;
     private final ImmutableSortedSet<TaskOutputFilePropertySpec> outputFileProperties;
-    private final FileCollection inputFiles;
+    private final FileCollectionInternal inputFiles;
     private final boolean hasSourceFiles;
-    private final FileCollection sourceFiles;
+    private final FileCollectionInternal sourceFiles;
     private final boolean hasDeclaredOutputs;
-    private final FileCollection outputFiles;
-    private final FileCollection localStateFiles;
-    private FileCollection destroyableFiles;
-    private List<ValidatingTaskPropertySpec> validatingPropertySpecs;
+    private final FileCollectionInternal outputFiles;
+    private final FileCollectionInternal localStateFiles;
+    private final FileCollectionInternal destroyableFiles;
+    private final List<ValidatingTaskPropertySpec> validatingPropertySpecs;
 
     public static TaskProperties resolve(PropertyWalker propertyWalker, PathToFileResolver resolver, TaskInternal task) {
         String beanName = task.toString();
@@ -96,7 +96,7 @@ public class DefaultTaskProperties implements TaskProperties {
             validationVisitor.getTaskPropertySpecs());
     }
 
-    private DefaultTaskProperties(final String name, Factory<Map<String, Object>> inputPropertyValues, final ImmutableSortedSet<TaskInputFilePropertySpec> inputFileProperties, final ImmutableSortedSet<TaskOutputFilePropertySpec> outputFileProperties, boolean hasDeclaredOutputs, FileCollection localStateFiles, FileCollection destroyableFiles, List<ValidatingTaskPropertySpec> validatingPropertySpecs) {
+    private DefaultTaskProperties(final String name, Factory<Map<String, Object>> inputPropertyValues, final ImmutableSortedSet<TaskInputFilePropertySpec> inputFileProperties, final ImmutableSortedSet<TaskOutputFilePropertySpec> outputFileProperties, boolean hasDeclaredOutputs, FileCollectionInternal localStateFiles, FileCollectionInternal destroyableFiles, List<ValidatingTaskPropertySpec> validatingPropertySpecs) {
         this.validatingPropertySpecs = validatingPropertySpecs;
 
         this.inputPropertyValues = inputPropertyValues;
@@ -167,12 +167,12 @@ public class DefaultTaskProperties implements TaskProperties {
     }
 
     @Override
-    public FileCollection getOutputFiles() {
+    public FileCollectionInternal getOutputFiles() {
         return outputFiles;
     }
 
     @Override
-    public FileCollection getSourceFiles() {
+    public FileCollectionInternal getSourceFiles() {
         return sourceFiles;
     }
 
@@ -182,7 +182,7 @@ public class DefaultTaskProperties implements TaskProperties {
     }
 
     @Override
-    public FileCollection getInputFiles() {
+    public FileCollectionInternal getInputFiles() {
         return inputFiles;
     }
 
@@ -209,12 +209,12 @@ public class DefaultTaskProperties implements TaskProperties {
     }
 
     @Override
-    public FileCollection getLocalStateFiles() {
+    public FileCollectionInternal getLocalStateFiles() {
         return localStateFiles;
     }
 
     @Override
-    public FileCollection getDestroyableFiles() {
+    public FileCollectionInternal getDestroyableFiles() {
         return destroyableFiles;
     }
 
@@ -233,7 +233,7 @@ public class DefaultTaskProperties implements TaskProperties {
             localState.add(localStateProperty.getValue());
         }
 
-        public FileCollection getFiles() {
+        public FileCollectionInternal getFiles() {
             return new DefaultConfigurableFileCollection(beanName + " local state", resolver, null, localState);
         }
     }
@@ -253,7 +253,7 @@ public class DefaultTaskProperties implements TaskProperties {
             destroyables.add(destroyableProperty.getValue());
         }
 
-        public FileCollection getFiles() {
+        public FileCollectionInternal getFiles() {
             return new DefaultConfigurableFileCollection(beanName + " destroy files", resolver, null, destroyables);
         }
     }

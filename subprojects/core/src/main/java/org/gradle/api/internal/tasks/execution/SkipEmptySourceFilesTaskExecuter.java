@@ -20,7 +20,6 @@ import org.gradle.api.execution.internal.TaskInputsListener;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.changedetection.TaskArtifactState;
-import org.gradle.api.internal.file.FileCollectionInternal;
 import org.gradle.api.internal.tasks.TaskExecuter;
 import org.gradle.api.internal.tasks.TaskExecuterResult;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
@@ -29,8 +28,8 @@ import org.gradle.api.internal.tasks.TaskStateInternal;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.caching.internal.origin.OriginMetadata;
-import org.gradle.internal.Cast;
 import org.gradle.internal.cleanup.BuildOutputCleanupRegistry;
+import org.gradle.internal.execution.ExecutionOutcome;
 import org.gradle.internal.execution.OutputChangeListener;
 import org.gradle.internal.execution.history.AfterPreviousExecutionState;
 import org.gradle.internal.fingerprint.FileCollectionFingerprint;
@@ -64,54 +63,58 @@ public class SkipEmptySourceFilesTaskExecuter implements TaskExecuter {
         if (taskProperties.hasSourceFiles() && sourceFiles.isEmpty()) {
             AfterPreviousExecutionState previousExecution = context.getAfterPreviousExecution();
             @SuppressWarnings("RedundantTypeArguments")
-            ImmutableSortedMap<String, FileCollectionFingerprint> outputFiles = previousExecution == null
+            final ImmutableSortedMap<String, FileCollectionFingerprint> outputFiles = previousExecution == null
                 ? ImmutableSortedMap.<String, FileCollectionFingerprint>of()
                 : previousExecution.getOutputFileProperties();
             if (outputFiles.isEmpty()) {
                 state.setOutcome(TaskExecutionOutcome.NO_SOURCE);
                 LOGGER.info("Skipping {} as it has no source files and no previous output files.", task);
+                return new TaskExecuterResult() {
+                    @Override
+                    public OriginMetadata getOriginMetadata() {
+                        return OriginMetadata.fromCurrentBuild(buildInvocationScopeId.getId(), context.markExecutionTime());
+                    }
+                };
             } else {
-                TaskArtifactState taskArtifactState = context.getTaskArtifactState();
-                boolean cleanupDirectories = taskArtifactState.getOverlappingOutputs(context.getAfterPreviousExecution()) == null;
-                if (!cleanupDirectories) {
-                    LOGGER.info("No leftover directories for {} will be deleted since overlapping outputs were detected.", task);
-                }
-                outputChangeListener.beforeOutputChange();
-                boolean deletedFiles = false;
-                boolean debugEnabled = LOGGER.isDebugEnabled();
+                context.setReplacementExecutionAction(new TaskExecutionContext.ExecutionAction() {
+                    @Override
+                    public ExecutionOutcome execute(TaskInternal task, TaskExecutionContext context) {
+                        TaskArtifactState taskArtifactState = context.getTaskArtifactState();
+                        boolean cleanupDirectories = taskArtifactState.getOverlappingOutputs(context.getAfterPreviousExecution()) == null;
+                        if (!cleanupDirectories) {
+                            LOGGER.info("No leftover directories for {} will be deleted since overlapping outputs were detected.", task);
+                        }
+                        outputChangeListener.beforeOutputChange();
+                        boolean deletedFiles = false;
+                        boolean debugEnabled = LOGGER.isDebugEnabled();
 
-                for (FileCollectionFingerprint outputFingerprints : outputFiles.values()) {
-                    for (String outputPath : outputFingerprints.getFingerprints().keySet()) {
-                        File file = new File(outputPath);
-                        if (file.exists() && buildOutputCleanupRegistry.isOutputOwnedByBuild(file)) {
-                            if (!cleanupDirectories && file.isDirectory()) {
-                                continue;
+                        for (FileCollectionFingerprint outputFingerprints : outputFiles.values()) {
+                            for (String outputPath : outputFingerprints.getFingerprints().keySet()) {
+                                File file = new File(outputPath);
+                                if (file.exists() && buildOutputCleanupRegistry.isOutputOwnedByBuild(file)) {
+                                    if (!cleanupDirectories && file.isDirectory()) {
+                                        continue;
+                                    }
+                                    if (debugEnabled) {
+                                        LOGGER.debug("Deleting stale output file '{}'.", file.getAbsolutePath());
+                                    }
+                                    GFileUtils.forceDelete(file);
+                                    deletedFiles = true;
+                                }
                             }
-                            if (debugEnabled) {
-                                LOGGER.debug("Deleting stale output file '{}'.", file.getAbsolutePath());
-                            }
-                            GFileUtils.forceDelete(file);
-                            deletedFiles = true;
+                        }
+                        taskArtifactState.snapshotAfterTaskExecution(context);
+                        if (deletedFiles) {
+                            LOGGER.info("Cleaned previous output of {} as it has no source files.", task);
+                            return ExecutionOutcome.EXECUTED;
+                        } else {
+                            return ExecutionOutcome.NO_SOURCE;
                         }
                     }
-                }
-                if (deletedFiles) {
-                    LOGGER.info("Cleaned previous output of {} as it has no source files.", task);
-                    state.setOutcome(TaskExecutionOutcome.EXECUTED);
-                } else {
-                    state.setOutcome(TaskExecutionOutcome.NO_SOURCE);
-                }
-                taskArtifactState.snapshotAfterTaskExecution(context);
+                });
             }
-            taskInputsListener.onExecute(task, Cast.cast(FileCollectionInternal.class, sourceFiles));
-            return new TaskExecuterResult() {
-                @Override
-                public OriginMetadata getOriginMetadata() {
-                    return OriginMetadata.fromCurrentBuild(buildInvocationScopeId.getId(), context.markExecutionTime());
-                }
-            };
         } else {
-            taskInputsListener.onExecute(task, Cast.cast(FileCollectionInternal.class, taskProperties.getInputFiles()));
+            taskInputsListener.onExecute(task, taskProperties.getInputFiles());
         }
         return executer.execute(task, state, context);
     }

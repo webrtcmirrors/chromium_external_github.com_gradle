@@ -16,15 +16,18 @@
 
 package org.gradle.api.internal.tasks;
 
+import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.changedetection.TaskArtifactState;
 import org.gradle.api.internal.tasks.execution.TaskProperties;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.caching.internal.tasks.TaskOutputCachingBuildCacheKey;
 import org.gradle.execution.plan.LocalTaskNode;
+import org.gradle.internal.execution.ExecutionOutcome;
 import org.gradle.internal.execution.history.AfterPreviousExecutionState;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskExecutionContext {
 
@@ -87,4 +90,19 @@ public interface TaskExecutionContext {
     boolean isTaskExecutedIncrementally();
 
     void setTaskExecutedIncrementally(boolean taskExecutedIncrementally);
+
+    /**
+     * The action to execute instead of the task's declared actions.
+     */
+    Optional<ExecutionAction> getReplacementExecutionAction();
+
+    /**
+     * Sets the action to execute instead of the task's declared actions.
+     */
+    void setReplacementExecutionAction(ExecutionAction action);
+
+    @FunctionalInterface
+    interface ExecutionAction {
+        ExecutionOutcome execute(TaskInternal task, TaskExecutionContext context);
+    }
 }

@@ -69,21 +69,37 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
     private final boolean buildCacheEnabled;
     private final BuildOperationExecutor buildOperationExecutor;
     private final AsyncWorkTracker asyncWorkTracker;
-    private final TaskActionListener actionListener;
     private final WorkExecutor<UpToDateResult> workExecutor;
+    private final TaskExecutionContext.ExecutionAction executeTaskActions;
 
     public ExecuteActionsTaskExecuter(
         boolean buildCacheEnabled,
         BuildOperationExecutor buildOperationExecutor,
         AsyncWorkTracker asyncWorkTracker,
-        TaskActionListener actionListener,
+        final TaskActionListener actionListener,
         WorkExecutor<UpToDateResult> workExecutor
     ) {
         this.buildCacheEnabled = buildCacheEnabled;
         this.buildOperationExecutor = buildOperationExecutor;
         this.asyncWorkTracker = asyncWorkTracker;
-        this.actionListener = actionListener;
         this.workExecutor = workExecutor;
+        this.executeTaskActions = new TaskExecutionContext.ExecutionAction() {
+            @Override
+            public ExecutionOutcome execute(TaskInternal task, TaskExecutionContext context) {
+                task.getState().setExecuting(true);
+                try {
+                    LOGGER.debug("Executing actions for {}.", task);
+                    actionListener.beforeActions(task);
+                    executeActions(task, context);
+                    return task.getState().getDidWork()
+                        ? ExecutionOutcome.EXECUTED
+                        : ExecutionOutcome.UP_TO_DATE;
+                } finally {
+                    task.getState().setExecuting(false);
+                    actionListener.afterActions(task);
+                }
+            }
+        };
     }
 
     @Override
@@ -138,18 +154,9 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
 
         @Override
         public ExecutionOutcome execute() {
-            task.getState().setExecuting(true);
-            try {
-                LOGGER.debug("Executing actions for {}.", task);
-                actionListener.beforeActions(task);
-                executeActions(task, context);
-                return task.getState().getDidWork()
-                    ? ExecutionOutcome.EXECUTED
-                    : ExecutionOutcome.UP_TO_DATE;
-            } finally {
-                task.getState().setExecuting(false);
-                actionListener.afterActions(task);
-            }
+            return context.getReplacementExecutionAction()
+                .orElse(executeTaskActions)
+                .execute(task, context);
         }
 
         @Override

@@ -25,6 +25,7 @@ import org.gradle.internal.time.Timer;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public class DefaultTaskExecutionContext implements TaskExecutionContext {
 
@@ -36,6 +37,7 @@ public class DefaultTaskExecutionContext implements TaskExecutionContext {
     private TaskProperties taskProperties;
     private boolean taskCachingEnabled;
     private Long executionTime;
+    private ExecutionAction replacementExecutionAction;
 
     private final Timer executionTimer;
     private boolean taskExecutedIncrementally;
@@ -48,6 +50,16 @@ public class DefaultTaskExecutionContext implements TaskExecutionContext {
     @Override
     public LocalTaskNode getLocalTaskNode() {
         return localTaskNode;
+    }
+
+    @Override
+    public Optional<ExecutionAction> getReplacementExecutionAction() {
+        return Optional.ofNullable(replacementExecutionAction);
+    }
+
+    @Override
+    public void setReplacementExecutionAction(ExecutionAction action) {
+        this.replacementExecutionAction = action;
     }
 
     @Nullable
