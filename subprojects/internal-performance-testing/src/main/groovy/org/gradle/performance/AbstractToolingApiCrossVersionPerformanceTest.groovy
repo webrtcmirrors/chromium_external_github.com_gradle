@@ -16,6 +16,7 @@
 
 package org.gradle.performance
 
+import org.apache.commons.io.output.NullOutputStream
 import org.gradle.integtests.fixtures.RepoScriptBlockUtil
 import org.gradle.integtests.fixtures.executer.GradleDistribution
 import org.gradle.integtests.fixtures.executer.IntegrationTestBuildContext
@@ -324,8 +325,7 @@ abstract class AbstractToolingApiCrossVersionPerformanceTest extends Specificati
                 Stoppable stoppable = new CompositeStoppable()
                 if (method.name in ["run", "get"]) {
                     def params = operation.operationParamsBuilder
-                    def log = new File(spec.workingDirectory, "log.txt")
-                    def out = new FileOutputStream(log, true)
+                    def out = new NullOutputStream()
                     stoppable.add(out)
                     params.stdout = out
                     params.stderr = out

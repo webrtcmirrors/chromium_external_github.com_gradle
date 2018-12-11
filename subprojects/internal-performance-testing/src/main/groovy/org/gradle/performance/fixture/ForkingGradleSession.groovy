@@ -24,8 +24,6 @@ import org.gradle.integtests.fixtures.executer.IntegrationTestBuildContext
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.performance.measure.MeasuredOperation
 
-import java.lang.ProcessBuilder.Redirect
-
 /**
  * A performance test session that runs Gradle from the command line.
  *
@@ -112,8 +110,8 @@ class ForkingGradleSession implements GradleSession {
     private static ProcessBuilder newProcessBuilder(BuildExperimentInvocationInfo invocationInfo, List<String> args, Map<String, String> env) {
         def builder = new ProcessBuilder()
             .directory(invocationInfo.projectDir)
-            .redirectOutput(Redirect.appendTo(invocationInfo.buildLog))
-            .redirectError(Redirect.appendTo(invocationInfo.buildLog))
+            .redirectOutput(new File("/dev/null"))
+            .redirectError(new File("/dev/null"))
             .command(args)
         builder.environment().putAll(env)
         builder
