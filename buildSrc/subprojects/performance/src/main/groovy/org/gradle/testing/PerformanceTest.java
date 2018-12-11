@@ -56,7 +56,7 @@ public class PerformanceTest extends DistributionTest {
     private String checks;
     private String channel;
     private String resultStoreClass = "org.gradle.performance.results.AllResultsStore";
-    private boolean flamegraphs;
+    private boolean flamegraphs = true;
 
     private final Map<String, String> databaseParameters = new HashMap<>();
 
