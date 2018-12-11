@@ -197,7 +197,7 @@ abstract class AbstractToolingApiCrossVersionPerformanceTest extends Specificati
                 cleanTasks: [],
                 args: [],
                 gradleOpts: [],
-                daemon: true,
+                daemon: false,
                 channel: ResultsStoreHelper.determineChannel(),
                 teamCityBuildId: ResultsStoreHelper.determineTeamCityBuildId()
             )

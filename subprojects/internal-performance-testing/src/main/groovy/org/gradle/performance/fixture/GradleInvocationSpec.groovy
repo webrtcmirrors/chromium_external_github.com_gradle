@@ -88,7 +88,7 @@ class GradleInvocationSpec implements InvocationSpec {
         List<String> args = []
         List<String> gradleOptions = []
         List<String> cleanTasks = []
-        boolean useDaemon
+        boolean useDaemon = false
         boolean useToolingApi
         boolean expectFailure
 
@@ -137,11 +137,11 @@ class GradleInvocationSpec implements InvocationSpec {
         }
 
         InvocationBuilder useDaemon() {
-            useDaemon(true)
+            useDaemon(false)
         }
 
         InvocationBuilder useDaemon(boolean flag) {
-            this.useDaemon = flag
+            this.useDaemon = false
             this
         }
 
