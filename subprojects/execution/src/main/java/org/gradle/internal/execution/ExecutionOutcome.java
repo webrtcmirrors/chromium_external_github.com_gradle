@@ -20,5 +20,6 @@ public enum ExecutionOutcome {
     NO_SOURCE,
     UP_TO_DATE,
     FROM_CACHE,
+    SKIPPED,
     EXECUTED
 }

@@ -16,6 +16,8 @@
 
 package org.gradle.api.internal.tasks;
 
+import org.gradle.internal.execution.ExecutionOutcome;
+
 public enum TaskExecutionOutcome {
     FROM_CACHE(true, true, "FROM-CACHE"),
     UP_TO_DATE(true, true, "UP-TO-DATE"),
@@ -41,5 +43,22 @@ public enum TaskExecutionOutcome {
     }
     public String getMessage() {
         return message;
+    }
+
+    public static TaskExecutionOutcome valueOf(ExecutionOutcome outcome) {
+        switch (outcome) {
+            case FROM_CACHE:
+                return FROM_CACHE;
+            case UP_TO_DATE:
+                return UP_TO_DATE;
+            case SKIPPED:
+                return SKIPPED;
+            case NO_SOURCE:
+                return NO_SOURCE;
+            case EXECUTED:
+                return EXECUTED;
+            default:
+                throw new AssertionError();
+        }
     }
 }

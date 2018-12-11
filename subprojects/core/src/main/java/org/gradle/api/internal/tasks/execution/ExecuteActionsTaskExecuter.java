@@ -112,22 +112,7 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
                     : new TaskExecutionException(task, failure);
             state.setOutcome(taskFailure);
         } else {
-            switch (result.getOutcome()) {
-                case EXECUTED:
-                    state.setOutcome(TaskExecutionOutcome.EXECUTED);
-                    break;
-                case UP_TO_DATE:
-                    state.setOutcome(TaskExecutionOutcome.UP_TO_DATE);
-                    break;
-                case FROM_CACHE:
-                    state.setOutcome(TaskExecutionOutcome.FROM_CACHE);
-                    break;
-                case NO_SOURCE:
-                    state.setOutcome(TaskExecutionOutcome.NO_SOURCE);
-                    break;
-                default:
-                    throw new AssertionError();
-            }
+            state.setOutcome(TaskExecutionOutcome.valueOf(result.getOutcome()));
         }
         context.setUpToDateMessages(result.getOutOfDateReasons());
         return new TaskExecuterResult() {
