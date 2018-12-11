@@ -32,7 +32,6 @@ import org.gradle.api.internal.tasks.TaskExecutionOutcome
 import org.gradle.api.internal.tasks.TaskStateInternal
 import org.gradle.caching.internal.origin.OriginMetadata
 import org.gradle.internal.cleanup.BuildOutputCleanupRegistry
-import org.gradle.internal.execution.OutputChangeListener
 import org.gradle.internal.execution.history.AfterPreviousExecutionState
 import org.gradle.internal.fingerprint.impl.AbsolutePathFileCollectionFingerprinter
 import org.gradle.internal.id.UniqueId
@@ -58,11 +57,10 @@ class SkipEmptySourceFilesTaskExecuterTest extends Specification {
     final taskContext = Mock(TaskExecutionContext)
     final taskArtifactState = Mock(TaskArtifactState)
     final cleanupRegistry = Mock(BuildOutputCleanupRegistry)
-    final outputChangeListener = Mock(OutputChangeListener)
     final buildInvocationId = UniqueId.generate()
     final taskExecutionTime = 1L
     final originExecutionMetadata = OriginMetadata.fromCurrentBuild(buildInvocationId, taskExecutionTime)
-    final executer = new SkipEmptySourceFilesTaskExecuter(taskInputsListener, cleanupRegistry, outputChangeListener, target, new BuildInvocationScopeId(buildInvocationId))
+    final executer = new SkipEmptySourceFilesTaskExecuter(taskInputsListener, cleanupRegistry, new BuildInvocationScopeId(buildInvocationId), target)
     final fileSystemSnapshotter = new DefaultFileSystemSnapshotter(TestFiles.fileHasher(), new StringInterner(), TestFiles.fileSystem(), new DefaultFileSystemMirror(new DefaultWellKnownFileLocations([])))
     final fingerprinter = new AbsolutePathFileCollectionFingerprinter(new StringInterner(), fileSystemSnapshotter)
 
@@ -117,7 +115,6 @@ class SkipEmptySourceFilesTaskExecuterTest extends Specification {
         1 * afterPreviousExecution.outputFileProperties >> outputFiles
         1 * taskContext.taskArtifactState >> taskArtifactState
         1 * taskArtifactState.getOverlappingOutputs(afterPreviousExecution) >> null
-        1 * outputChangeListener.beforeOutputChange()
 
         then: 'deleting the file succeeds'
         1 * cleanupRegistry.isOutputOwnedByBuild(previousFile) >> true
@@ -157,7 +154,6 @@ class SkipEmptySourceFilesTaskExecuterTest extends Specification {
         1 * afterPreviousExecution.outputFileProperties >> outputFiles
         1 * taskContext.taskArtifactState >> taskArtifactState
         1 * taskArtifactState.getOverlappingOutputs(afterPreviousExecution) >> null
-        1 * outputChangeListener.beforeOutputChange()
 
         then: 'deleting the file succeeds'
         1 * cleanupRegistry.isOutputOwnedByBuild(previousFile) >> false
@@ -209,7 +205,6 @@ class SkipEmptySourceFilesTaskExecuterTest extends Specification {
         _ * taskContext.afterPreviousExecution >> afterPreviousExecutionState
         1 * afterPreviousExecutionState.outputFileProperties >> ImmutableSortedMap.naturalOrder().put("outputProperty", fingerprint).build()
         1 * taskArtifactState.getOverlappingOutputs(afterPreviousExecutionState) >> new OverlappingOutputs("outputProperty", overlappingFile.absolutePath)
-        1 * outputChangeListener.beforeOutputChange()
 
         then: 'deleting the file succeeds'
         5 * cleanupRegistry.isOutputOwnedByBuild(_) >> true
@@ -254,7 +249,6 @@ class SkipEmptySourceFilesTaskExecuterTest extends Specification {
         _ * taskContext.afterPreviousExecution >> afterPreviousExecutionState
         1 * afterPreviousExecutionState.outputFileProperties >> previousOutputFingerprints
         1 * taskArtifactState.getOverlappingOutputs(afterPreviousExecutionState) >> null
-        1 * outputChangeListener.beforeOutputChange()
 
         then: 'deleting the previous file fails'
         1 * cleanupRegistry.isOutputOwnedByBuild(previousFile) >> {

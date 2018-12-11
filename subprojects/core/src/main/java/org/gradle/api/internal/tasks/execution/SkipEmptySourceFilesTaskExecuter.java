@@ -30,7 +30,6 @@ import org.gradle.api.logging.Logging;
 import org.gradle.caching.internal.origin.OriginMetadata;
 import org.gradle.internal.cleanup.BuildOutputCleanupRegistry;
 import org.gradle.internal.execution.ExecutionOutcome;
-import org.gradle.internal.execution.OutputChangeListener;
 import org.gradle.internal.execution.history.AfterPreviousExecutionState;
 import org.gradle.internal.fingerprint.FileCollectionFingerprint;
 import org.gradle.internal.scopeids.id.BuildInvocationScopeId;
@@ -45,16 +44,14 @@ public class SkipEmptySourceFilesTaskExecuter implements TaskExecuter {
     private static final Logger LOGGER = Logging.getLogger(SkipEmptySourceFilesTaskExecuter.class);
     private final TaskInputsListener taskInputsListener;
     private final BuildOutputCleanupRegistry buildOutputCleanupRegistry;
-    private final OutputChangeListener outputChangeListener;
     private final TaskExecuter executer;
     private final BuildInvocationScopeId buildInvocationScopeId;
 
-    public SkipEmptySourceFilesTaskExecuter(TaskInputsListener taskInputsListener, BuildOutputCleanupRegistry buildOutputCleanupRegistry, OutputChangeListener outputChangeListener, TaskExecuter executer, BuildInvocationScopeId buildInvocationScopeId) {
+    public SkipEmptySourceFilesTaskExecuter(TaskInputsListener taskInputsListener, BuildOutputCleanupRegistry buildOutputCleanupRegistry, BuildInvocationScopeId buildInvocationScopeId, TaskExecuter executer) {
         this.taskInputsListener = taskInputsListener;
         this.buildOutputCleanupRegistry = buildOutputCleanupRegistry;
-        this.outputChangeListener = outputChangeListener;
-        this.executer = executer;
         this.buildInvocationScopeId = buildInvocationScopeId;
+        this.executer = executer;
     }
 
     public TaskExecuterResult execute(TaskInternal task, TaskStateInternal state, final TaskExecutionContext context) {
@@ -84,7 +81,6 @@ public class SkipEmptySourceFilesTaskExecuter implements TaskExecuter {
                         if (!cleanupDirectories) {
                             LOGGER.info("No leftover directories for {} will be deleted since overlapping outputs were detected.", task);
                         }
-                        outputChangeListener.beforeOutputChange();
                         boolean deletedFiles = false;
                         boolean debugEnabled = LOGGER.isDebugEnabled();
 
@@ -103,7 +99,6 @@ public class SkipEmptySourceFilesTaskExecuter implements TaskExecuter {
                                 }
                             }
                         }
-                        taskArtifactState.snapshotAfterTaskExecution(context);
                         if (deletedFiles) {
                             LOGGER.info("Cleaned previous output of {} as it has no source files.", task);
                             return ExecutionOutcome.EXECUTED;
