@@ -89,10 +89,12 @@ class JfrProfiler extends Profiler implements Stoppable {
         if (useDaemon(spec)) {
             jCmd.execute(pid.pid, "JFR.stop", "name=profile", "filename=${jfrFile}")
         }
+        flameGraphGenerator.generateGraphs(jfrFile)
     }
 
     @Override
     void stop() {
+        flameGraphGenerator.generateDifferentialGraphs(logDirectory)
     }
 
     private boolean useDaemon(BuildExperimentSpec spec) {
