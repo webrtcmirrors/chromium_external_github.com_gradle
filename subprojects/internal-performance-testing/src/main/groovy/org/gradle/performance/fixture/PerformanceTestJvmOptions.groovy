@@ -33,6 +33,8 @@ class PerformanceTestJvmOptions {
             jvmOptions << '-XX:MaxPermSize=256m'
         }
 
+        jvmOptions << '-XX:+UseG1GC'
+
         return jvmOptions
     }
 }
