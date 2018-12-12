@@ -185,7 +185,7 @@ class RepoScriptBlockUtil {
         def mirrorConditions = MirroredRepository.values().collect { MirroredRepository mirror ->
             """
                 if (normalizeUrl(repo.url) == normalizeUrl('${mirror.originalUrl}')) {
-                    repo.url = '${mirror.mirrorUrl}'
+                    repo.url = new java.net.URI('${mirror.mirrorUrl}')
                 }
             """
         }.join("")
@@ -239,8 +239,11 @@ class RepoScriptBlockUtil {
                 // We see them as equal:
                 // https://repo.maven.apache.org/maven2/ and http://repo.maven.apache.org/maven2
                 String normalizeUrl(Object url) {
-                    String result = url.toString().replace('https://', 'http://')
-                    return result.endsWith("/") ? result : result + "/"
+                    String urlStr = url.toString()
+                    if(urlStr.startsWith('https')) {
+                        urlStr = 'http' + urlStr[5..-1]
+                    }
+                    return urlStr.endsWith("/") ? urlStr : urlStr + "/"
                 }
             }
         """
