@@ -87,6 +87,7 @@ class ExecuteActionsTaskExecutorTest extends Specification {
         project.getBuildScriptSource() >> scriptSource
         task.getStandardOutputCapture() >> standardOutputCapture
         executionContext.getTaskArtifactState() >> taskArtifactState
+        executionContext.getReplacementExecutionAction() >> Optional.empty()
         taskArtifactState.snapshotAfterTaskExecution(executionContext) >> ImmutableSortedMap.of()
         taskArtifactState.getExecutionStateChanges(_) >> Optional.empty()
     }

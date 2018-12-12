@@ -70,7 +70,6 @@ import org.gradle.internal.fingerprint.impl.RelativePathFileCollectionFingerprin
 import org.gradle.internal.operations.BuildOperationExecutor;
 import org.gradle.internal.reflect.Instantiator;
 import org.gradle.internal.scan.config.BuildScanPluginApplied;
-import org.gradle.internal.scopeids.id.BuildInvocationScopeId;
 import org.gradle.internal.service.DefaultServiceRegistry;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.internal.snapshot.FileSystemSnapshotter;
@@ -107,7 +106,6 @@ public class ProjectExecutionServices extends DefaultServiceRegistry {
                                     PathToFileResolver resolver,
                                     PropertyWalker propertyWalker,
                                     TaskExecutionGraphInternal taskExecutionGraph,
-                                    BuildInvocationScopeId buildInvocationScopeId,
                                     TaskExecutionListener taskExecutionListener,
                                     RelativeFilePathResolver relativeFilePathResolver,
                                     WorkExecutor<UpToDateResult> workExecutor
@@ -128,7 +126,7 @@ public class ProjectExecutionServices extends DefaultServiceRegistry {
             executer = new ResolveBuildCacheKeyExecuter(executer, buildOperationExecutor, buildCacheController.isEmitDebugLogging());
         }
         executer = new ValidatingTaskExecuter(executer);
-        executer = new SkipEmptySourceFilesTaskExecuter(inputsListener, cleanupRegistry, buildInvocationScopeId, executer);
+        executer = new SkipEmptySourceFilesTaskExecuter(inputsListener, cleanupRegistry, executer);
         executer = new ResolvePreviousStateExecuter(executionHistoryStore, executer);
         executer = new CleanupStaleOutputsExecuter(cleanupRegistry, outputFilesRepository, buildOperationExecutor, outputChangeListener, executer);
         executer = new FinalizePropertiesTaskExecuter(executer);

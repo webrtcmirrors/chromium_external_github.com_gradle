@@ -175,6 +175,10 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
 
         @Override
         public Optional<ExecutionStateChanges> getChangesSincePreviousExecution() {
+            // We don't want up-to-date checks if we have a replacement action
+            if (context.getReplacementExecutionAction().isPresent()) {
+                return Optional.empty();
+            }
             return context.getTaskArtifactState().getExecutionStateChanges(context.getAfterPreviousExecution());
         }
 
@@ -188,6 +192,10 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
             return new CacheHandler() {
                 @Override
                 public <T> Optional<T> load(Function<BuildCacheKey, T> loader) {
+                    // We don't want caching if we have a replacement action
+                    if (context.getReplacementExecutionAction().isPresent()) {
+                        return Optional.empty();
+                    }
                     // TODO Log this when creating the build cache key perhaps?
                     if (task.isHasCustomActions()) {
                         LOGGER.info("Custom actions are attached to {}.", task);
@@ -205,6 +213,10 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
 
                 @Override
                 public void store(Consumer<BuildCacheKey> storer) {
+                    // We don't want caching if we have a replacement action
+                    if (context.getReplacementExecutionAction().isPresent()) {
+                        return;
+                    }
                     if (buildCacheEnabled
                             && context.isTaskCachingEnabled()
                             && context.getBuildCacheKey().isValid()
