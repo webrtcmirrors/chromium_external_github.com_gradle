@@ -401,7 +401,7 @@
     </event>
 
     <event path="java/exception_throw">
-      <setting name="enabled">false</setting>
+      <setting name="enabled">true</setting>
       <setting name="stackTrace">true</setting>
     </event>
 
