@@ -35,6 +35,7 @@ import org.gradle.internal.exceptions.MultiCauseException
 import org.gradle.internal.execution.OutputChangeListener
 import org.gradle.internal.execution.history.ExecutionHistoryStore
 import org.gradle.internal.execution.history.OutputFilesRepository
+import org.gradle.internal.execution.impl.DefaultCachePopulatorRegistry
 import org.gradle.internal.execution.impl.DefaultWorkExecutor
 import org.gradle.internal.execution.impl.steps.CancelExecutionStep
 import org.gradle.internal.execution.impl.steps.CatchExceptionStep
@@ -89,7 +90,7 @@ class ExecuteActionsTaskExecuterTest extends Specification {
             )
         )
     )
-    def executer = new ExecuteActionsTaskExecuter(false, taskFingerprinter, executionHistoryStore, outputFilesRepository, buildOperationExecutor, asyncWorkTracker, actionListener, workExecutor)
+    def executer = new ExecuteActionsTaskExecuter(false, taskFingerprinter, executionHistoryStore, outputFilesRepository, buildOperationExecutor, asyncWorkTracker, actionListener, workExecutor, new DefaultCachePopulatorRegistry())
 
     def setup() {
         ProjectInternal project = Mock(ProjectInternal)

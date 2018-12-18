@@ -156,4 +156,12 @@ public interface TaskExecutionGraph {
      */
     @Incubating
     Set<Task> getDependencies(Task task);
+
+    /**
+     * <p>Returns the dependents of a task which are part of the execution graph.</p>
+     *
+     * @since 5.2
+     */
+    @Incubating
+    Set<Task> getDependent(Task task);
 }

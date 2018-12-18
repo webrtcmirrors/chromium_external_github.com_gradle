@@ -40,6 +40,7 @@ import org.gradle.internal.exceptions.Contextual;
 import org.gradle.internal.exceptions.DefaultMultiCauseException;
 import org.gradle.internal.exceptions.MultiCauseException;
 import org.gradle.internal.execution.CacheHandler;
+import org.gradle.internal.CachePopulatorRegistry;
 import org.gradle.internal.execution.ExecutionException;
 import org.gradle.internal.execution.ExecutionOutcome;
 import org.gradle.internal.execution.UnitOfWork;
@@ -51,6 +52,7 @@ import org.gradle.internal.execution.history.OutputFilesRepository;
 import org.gradle.internal.execution.history.changes.ExecutionStateChanges;
 import org.gradle.internal.execution.history.changes.OutputFileChanges;
 import org.gradle.internal.execution.impl.OutputFilterUtil;
+import org.gradle.internal.execution.impl.DefaultCachePopulatorRegistry;
 import org.gradle.internal.execution.impl.steps.UpToDateResult;
 import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint;
 import org.gradle.internal.fingerprint.FileCollectionFingerprint;
@@ -83,6 +85,7 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
     private final AsyncWorkTracker asyncWorkTracker;
     private final TaskActionListener actionListener;
     private final WorkExecutor<UpToDateResult> workExecutor;
+    private final DefaultCachePopulatorRegistry cachePopulatorRegistry;
 
     public ExecuteActionsTaskExecuter(
         boolean buildCacheEnabled,
@@ -92,7 +95,8 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
         BuildOperationExecutor buildOperationExecutor,
         AsyncWorkTracker asyncWorkTracker,
         TaskActionListener actionListener,
-        WorkExecutor<UpToDateResult> workExecutor
+        WorkExecutor<UpToDateResult> workExecutor,
+        CachePopulatorRegistry cachePopulatorRegistry
     ) {
         this.buildCacheEnabled = buildCacheEnabled;
         this.taskFingerprinter = taskFingerprinter;
@@ -102,6 +106,7 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
         this.asyncWorkTracker = asyncWorkTracker;
         this.actionListener = actionListener;
         this.workExecutor = workExecutor;
+        this.cachePopulatorRegistry = (DefaultCachePopulatorRegistry) cachePopulatorRegistry;
     }
 
     @Override
@@ -218,7 +223,16 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
                             && context.getTaskExecutionMode().isAllowedToUseCachedResults()
                             && context.getBuildCacheKey().isValid()
                     ) {
-                        return Optional.ofNullable(loader.apply(context.getBuildCacheKey()));
+                        T loadResult = loader.apply(context.getBuildCacheKey());
+                        if (loadResult == null) {
+                            if (cachePopulatorRegistry.executePopulator(task)) { //blocks until population is finished
+                                loadResult = loader.apply(context.getBuildCacheKey());
+                                if (loadResult == null) {
+                                    LOGGER.error("WARNING: Populated cache expected");
+                                }
+                            }
+                        }
+                        return Optional.ofNullable(loadResult);
                     } else {
                         return Optional.empty();
                     }

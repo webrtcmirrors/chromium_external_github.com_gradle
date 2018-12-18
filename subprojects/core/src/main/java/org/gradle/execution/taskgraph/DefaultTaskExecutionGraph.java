@@ -302,6 +302,19 @@ public class DefaultTaskExecutionGraph implements TaskExecutionGraphInternal {
         return builder.build();
     }
 
+    @Override
+    public Set<Task> getDependent(Task task) {
+        ensurePopulated();
+        Node node = executionPlan.getNode(task);
+        ImmutableSet.Builder<Task> builder = ImmutableSet.builder();
+        for (Node dependencyNode : node.getDependencyPredecessors()) {
+            if (dependencyNode instanceof TaskNode) {
+                builder.add(((TaskNode) dependencyNode).getTask());
+            }
+        }
+        return builder.build();
+    }
+
     private void ensurePopulated() {
         switch (graphState) {
             case EMPTY:

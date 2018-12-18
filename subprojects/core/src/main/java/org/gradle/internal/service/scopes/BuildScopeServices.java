@@ -129,6 +129,7 @@ import org.gradle.initialization.buildsrc.BuildSourceBuilder;
 import org.gradle.initialization.buildsrc.BuildSrcBuildListenerFactory;
 import org.gradle.initialization.buildsrc.BuildSrcProjectConfigurationAction;
 import org.gradle.initialization.layout.BuildLayoutFactory;
+import org.gradle.internal.CachePopulatorRegistry;
 import org.gradle.internal.actor.ActorFactory;
 import org.gradle.internal.actor.internal.DefaultActorFactory;
 import org.gradle.internal.authentication.AuthenticationSchemeRegistry;
@@ -144,6 +145,7 @@ import org.gradle.internal.classloader.ClassLoaderHierarchyHasher;
 import org.gradle.internal.classpath.CachedClasspathTransformer;
 import org.gradle.internal.concurrent.ExecutorFactory;
 import org.gradle.internal.event.ListenerManager;
+import org.gradle.internal.execution.impl.DefaultCachePopulatorRegistry;
 import org.gradle.internal.hash.FileHasher;
 import org.gradle.internal.hash.StreamHasher;
 import org.gradle.internal.invocation.DefaultBuildInvocationDetails;
@@ -462,5 +464,9 @@ public class BuildScopeServices extends DefaultServiceRegistry {
 
     protected BuildInvocationDetails createBuildInvocationDetails(BuildStartedTime buildStartedTime) {
         return new DefaultBuildInvocationDetails(buildStartedTime);
+    }
+
+    protected CachePopulatorRegistry createCachePopulatorRegistry() {
+        return new DefaultCachePopulatorRegistry();
     }
 }
