@@ -167,6 +167,7 @@ for (project in rootProject.children) {
 
 pluginManagement {
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         maven { url = uri("https://repo.gradle.org/gradle/libs-releases") }
     }
