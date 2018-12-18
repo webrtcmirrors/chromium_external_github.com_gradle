@@ -50,10 +50,10 @@ open class GradleDistribution(project: Project, gradleHomeDir: DirectoryProperty
     }
 
     @get:Classpath
-    val coreJars: SortedSet<File>
+    open val coreJars: SortedSet<File>
         get() = libs.files.toSortedSet()
 
     @get:Classpath
-    val pluginJars: SortedSet<File>
+    open val pluginJars: SortedSet<File>
         get() = plugins.files.toSortedSet()
 }

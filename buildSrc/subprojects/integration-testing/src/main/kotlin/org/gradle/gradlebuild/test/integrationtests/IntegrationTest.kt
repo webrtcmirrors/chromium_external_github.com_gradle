@@ -16,11 +16,11 @@
 
 package org.gradle.gradlebuild.test.integrationtests
 
-import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Nested
 import org.gradle.gradlebuild.BuildEnvironment
 import java.util.Timer
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import kotlin.concurrent.timerTask
 
 
@@ -29,8 +29,7 @@ import kotlin.concurrent.timerTask
  * Usually referred to as 'functional tests' in literature, but our code base has historically
  * been using the term 'integration test'.
  */
-@CacheableTask
-open class IntegrationTest : DistributionTest() {
+abstract class IntegrationTest @Inject constructor(lenient: Boolean = false) : DistributionTest(lenient) {
 
     @get:Nested
     val distributionSamples: GradleDistributionSamples = GradleDistributionSamples(project, gradleInstallationForTest.gradleHomeDir)

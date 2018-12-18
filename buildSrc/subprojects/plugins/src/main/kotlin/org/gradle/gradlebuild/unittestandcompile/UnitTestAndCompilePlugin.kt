@@ -20,6 +20,7 @@ import accessors.java
 import availableJavaInstallations
 import library
 import maxParallelForks
+import org.gradle.api.GradleException
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.JavaVersion
 import org.gradle.api.Named
@@ -35,6 +36,8 @@ import org.gradle.build.ClasspathManifest
 import org.gradle.gradlebuild.BuildEnvironment
 import org.gradle.gradlebuild.BuildEnvironment.agentNum
 import org.gradle.gradlebuild.java.AvailableJavaInstallations
+import org.gradle.gradlebuild.test.integrationtests.buildEnvironments
+import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.*
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
@@ -94,11 +97,36 @@ class UnitTestAndCompilePlugin : Plugin<Project> {
         val extension = extensions.create<UnitTestAndCompileExtension>("gradlebuildJava", this)
 
         base.archivesBaseName = "gradle-${name.replace(Regex("\\p{Upper}")) { "-${it.value.toLowerCase()}" }}"
+        expandTestTasks()
         addDependencies()
         addGeneratedResources(extension)
         configureCompile()
         configureJarTasks()
         configureTests()
+    }
+
+    private
+    fun Project.expandTestTasks() {
+        buildEnvironments.forEach { environment ->
+            tasks.register(environment.asEnvironmentSpecificName("test"), EnvSpecificTest::class) {
+                operatingSystem = environment.os
+                val vmParts = environment.vm.split(" ")
+                javaVersionOverride = JavaVersion.toVersion(vmParts[vmParts.size - 1])
+                inputs.property("javaInstallation", environment.vm)
+            }.configure {
+                val sourceSet = java.sourceSets.getByName("test")
+                testClassesDirs = sourceSet.output.classesDirs
+                classpath = sourceSet.runtimeClasspath
+
+                doFirst {
+                    val currentVM = rootProject.availableJavaInstallations.javaInstallationForTest.vendorAndMajorVersion
+                    val currentOS = "${OperatingSystem.current().name} ${System.getProperty("os.arch")}"
+                    if (environment.os != currentOS || environment.vm != currentVM) {
+                        throw GradleException("This task needs to run on '${environment.os} ${environment.vm}' results need to be taken from cache (currently running on '$currentOS $currentVM')")
+                    }
+                }
+            }
+        }
     }
 
     private
@@ -205,7 +233,9 @@ class UnitTestAndCompilePlugin : Plugin<Project> {
                 jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
             }
             // Includes JVM vendor and major version
-            inputs.property("javaInstallation", Callable { javaInstallationForTest.vendorAndMajorVersion })
+            if (inputs.properties.get("javaInstallation") == null) {
+                inputs.property("javaInstallation", Callable { javaInstallationForTest.vendorAndMajorVersion })
+            }
             doFirst {
                 if (BuildEnvironment.isCiServer) {
                     logger.lifecycle("maxParallelForks for '$path' is $maxParallelForks")

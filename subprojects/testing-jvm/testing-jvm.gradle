@@ -44,9 +44,11 @@ gradlebuildJava {
     moduleType = ModuleType.WORKER
 }
 
-tasks.named("test").configure {
-    exclude 'org/gradle/api/internal/tasks/testing/junit/ATestClass*.*'
-    exclude 'org/gradle/api/internal/tasks/testing/junit/ABroken*TestClass*.*'
+tasks.withType(Test.class).configureEach { task ->
+    if (task.name.startsWith("test")) {
+        exclude 'org/gradle/api/internal/tasks/testing/junit/ATestClass*.*'
+        exclude 'org/gradle/api/internal/tasks/testing/junit/ABroken*TestClass*.*'
+    }
 }
 
 testFixtures {

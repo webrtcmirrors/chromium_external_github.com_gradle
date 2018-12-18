@@ -40,7 +40,7 @@ tasks.named("integTest").configure {
     exclude 'org/gradle/play/prepare/**'
 }
 
-def integTestPrepare = tasks.register("integTestPrepare", org.gradle.gradlebuild.test.integrationtests.IntegrationTest) {
+def integTestPrepare = tasks.register("integTestPrepare", org.gradle.gradlebuild.test.integrationtests.EnvSpecificIntegrationTest) {
     systemProperties['org.gradle.integtest.executer'] = 'embedded'
     if (BuildEnvironment.isCiServer) {
         systemProperties['org.gradle.integtest.multiversion'] = 'all'

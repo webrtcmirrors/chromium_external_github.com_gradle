@@ -31,27 +31,31 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.process.CommandLineArgumentProvider
 import java.util.concurrent.Callable
+import javax.inject.Inject
 
 
 /**
  * Base class for all tests that check the end-to-end behavior of a Gradle distribution.
  */
-open class DistributionTest : Test() {
+open class DistributionTest @Inject constructor(lenient: Boolean = false) : Test() {
 
-    @get:Input
-    val operatingSystem by lazy {
-        // the version currently differs between our dev infrastructure, so we only track the name and the architecture
-        "${OperatingSystem.current().name} ${System.getProperty("os.arch")}"
-    }
+    @Input
+    var operatingSystem = "${OperatingSystem.current().name} ${System.getProperty("os.arch")}"
+
+    @Internal
+    var javaVersionOverride = super.getJavaVersion()
 
     @Internal
     val binaryDistributions = BinaryDistributions(project.objects)
 
     @Internal
-    val gradleInstallationForTest = GradleInstallationForTestEnvironmentProvider(project)
+    val gradleInstallationForTest = GradleInstallationForTestEnvironmentProvider(project, lenient)
 
     @Internal
     val libsRepository = LibsRepositoryEnvironmentProvider(project.objects)
+
+    @Input
+    override fun getJavaVersion() = javaVersionOverride
 
     init {
         dependsOn(Callable { if (binaryDistributions.distributionsRequired) listOf("all", "bin", "src").map { ":distributions:${it}Zip" } else null })
@@ -81,7 +85,7 @@ class LibsRepositoryEnvironmentProvider(objects: ObjectFactory) : CommandLineArg
 }
 
 
-class GradleInstallationForTestEnvironmentProvider(project: Project) : CommandLineArgumentProvider, Named {
+class GradleInstallationForTestEnvironmentProvider(project: Project, lenient: Boolean) : CommandLineArgumentProvider, Named {
 
     @Internal
     val gradleHomeDir = project.objects.directoryProperty()
@@ -103,7 +107,7 @@ class GradleInstallationForTestEnvironmentProvider(project: Project) : CommandLi
     val daemonRegistry = project.objects.directoryProperty()
 
     @get:Nested
-    val gradleDistribution = GradleDistribution(project, gradleHomeDir)
+    val gradleDistribution = if (lenient) LenientGradleDistribution(project, gradleHomeDir) else GradleDistribution(project, gradleHomeDir)
 
     override fun asArguments() =
         mapOf(
