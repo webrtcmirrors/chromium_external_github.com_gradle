@@ -28,11 +28,9 @@ import org.gradle.language.internal.NativeComponentFactory;
 import org.gradle.language.nativeplatform.internal.Dimensions;
 import org.gradle.language.nativeplatform.internal.toolchains.ToolChainSelector;
 import org.gradle.language.swift.SwiftApplication;
-import org.gradle.language.swift.SwiftExecutable;
 import org.gradle.language.swift.SwiftPlatform;
 import org.gradle.language.swift.internal.DefaultSwiftApplication;
 import org.gradle.nativeplatform.TargetMachineFactory;
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
 import org.gradle.util.GUtil;
 
 import javax.inject.Inject;
@@ -83,19 +81,6 @@ public class SwiftApplicationPlugin implements Plugin<ProjectInternal> {
         application.getModule().set(GUtil.toCamelCase(project.getName()));
 
         application.getTargetMachines().convention(Dimensions.getDefaultTargetMachines(targetMachineFactory));
-        application.getDevelopmentBinary().convention(project.provider(() -> {
-            return application.getBinaries().get().stream()
-                    .filter(SwiftExecutable.class::isInstance)
-                    .map(SwiftExecutable.class::cast)
-                    .filter(binary -> !binary.isOptimized() && binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture()))
-                    .findFirst()
-                    .orElse(application.getBinaries().get().stream()
-                            .filter(SwiftExecutable.class::isInstance)
-                            .map(SwiftExecutable.class::cast)
-                            .filter(binary -> !binary.isOptimized())
-                            .findFirst()
-                            .orElse(null));
-        }));
 
         project.afterEvaluate(new Action<Project>() {
             @Override

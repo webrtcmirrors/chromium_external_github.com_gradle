@@ -27,6 +27,7 @@ import org.gradle.internal.Describables;
 import org.gradle.internal.DisplayName;
 import org.gradle.language.LibraryDependencies;
 import org.gradle.language.cpp.internal.NativeVariantIdentity;
+import org.gradle.language.internal.ConfigurableProductionComponent;
 import org.gradle.language.internal.DefaultLibraryDependencies;
 import org.gradle.language.swift.SwiftBinary;
 import org.gradle.language.swift.SwiftLibrary;
@@ -40,7 +41,7 @@ import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider;
 import javax.inject.Inject;
 import java.util.Collections;
 
-public class DefaultSwiftLibrary extends DefaultSwiftComponent implements SwiftLibrary {
+public class DefaultSwiftLibrary extends DefaultSwiftComponent implements SwiftLibrary, ConfigurableProductionComponent {
     private final ObjectFactory objectFactory;
     private final SetProperty<Linkage> linkage;
     private final ConfigurationContainer configurations;
