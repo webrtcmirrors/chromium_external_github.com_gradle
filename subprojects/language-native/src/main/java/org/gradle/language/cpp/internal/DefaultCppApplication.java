@@ -28,7 +28,6 @@ import org.gradle.language.ComponentDependencies;
 import org.gradle.language.cpp.CppApplication;
 import org.gradle.language.cpp.CppExecutable;
 import org.gradle.language.cpp.CppPlatform;
-import org.gradle.language.internal.ConfigurableProductionComponent;
 import org.gradle.language.internal.DefaultComponentDependencies;
 import org.gradle.language.nativeplatform.internal.PublicationAwareComponent;
 import org.gradle.nativeplatform.toolchain.internal.NativeToolChainInternal;
@@ -36,7 +35,7 @@ import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider;
 
 import javax.inject.Inject;
 
-public class DefaultCppApplication extends DefaultCppComponent implements CppApplication, PublicationAwareComponent, ConfigurableProductionComponent {
+public class DefaultCppApplication extends DefaultCppComponent implements CppApplication, PublicationAwareComponent {
     private final ObjectFactory objectFactory;
     private final Property<CppExecutable> developmentBinary;
     private final MainExecutableVariant mainVariant;

@@ -25,12 +25,14 @@ import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.language.cpp.CppApplication;
+import org.gradle.language.cpp.CppExecutable;
 import org.gradle.language.cpp.CppPlatform;
 import org.gradle.language.cpp.internal.DefaultCppApplication;
 import org.gradle.language.internal.NativeComponentFactory;
 import org.gradle.language.nativeplatform.internal.Dimensions;
 import org.gradle.language.nativeplatform.internal.toolchains.ToolChainSelector;
 import org.gradle.nativeplatform.TargetMachineFactory;
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
 
 import javax.inject.Inject;
 
@@ -78,6 +80,21 @@ public class CppApplicationPlugin implements Plugin<ProjectInternal> {
         application.getBaseName().set(project.getName());
 
         application.getTargetMachines().convention(getDefaultTargetMachines(targetMachineFactory));
+        application.getDevelopmentBinary().convention(project.provider(() -> {
+            // Use the debug variant as the development binary
+            // Prefer the host architecture, if present, else use the first architecture specified
+            return application.getBinaries().get().stream()
+                    .filter(CppExecutable.class::isInstance)
+                    .map(CppExecutable.class::cast)
+                    .filter(binary -> !binary.isOptimized() && binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture()))
+                    .findFirst()
+                    .orElse(application.getBinaries().get().stream()
+                            .filter(CppExecutable.class::isInstance)
+                            .map(CppExecutable.class::cast)
+                            .filter(binary -> !binary.isOptimized())
+                            .findFirst()
+                            .orElse(null));
+        }));
 
         application.getBinaries().whenElementKnown(binary -> {
             application.getMainPublication().addVariant(binary);

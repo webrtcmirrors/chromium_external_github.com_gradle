@@ -38,7 +38,6 @@ import org.gradle.api.file.RegularFile;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.publish.maven.internal.publication.MavenPublicationInternal;
@@ -50,10 +49,6 @@ import org.gradle.language.ComponentWithBinaries;
 import org.gradle.language.ComponentWithOutputs;
 import org.gradle.language.ProductionComponent;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
-import org.gradle.language.cpp.CppExecutable;
-import org.gradle.language.cpp.CppSharedLibrary;
-import org.gradle.language.internal.ConfigurableProductionComponent;
-import org.gradle.language.nativeplatform.ComponentWithNativeRuntime;
 import org.gradle.language.nativeplatform.internal.ComponentWithNames;
 import org.gradle.language.nativeplatform.internal.ConfigurableComponentWithExecutable;
 import org.gradle.language.nativeplatform.internal.ConfigurableComponentWithLinkUsage;
@@ -62,13 +57,10 @@ import org.gradle.language.nativeplatform.internal.ConfigurableComponentWithShar
 import org.gradle.language.nativeplatform.internal.ConfigurableComponentWithStaticLibrary;
 import org.gradle.language.nativeplatform.internal.Names;
 import org.gradle.language.nativeplatform.internal.PublicationAwareComponent;
-import org.gradle.language.swift.SwiftExecutable;
-import org.gradle.language.swift.SwiftSharedLibrary;
 import org.gradle.nativeplatform.Linkage;
 import org.gradle.nativeplatform.TargetMachine;
 import org.gradle.nativeplatform.TargetMachineFactory;
 import org.gradle.nativeplatform.platform.NativePlatform;
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
 import org.gradle.nativeplatform.tasks.AbstractLinkTask;
 import org.gradle.nativeplatform.tasks.CreateStaticLibrary;
 import org.gradle.nativeplatform.tasks.ExtractSymbols;
@@ -80,10 +72,7 @@ import org.gradle.nativeplatform.toolchain.NativeToolChain;
 import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider;
 
 import javax.inject.Inject;
-import java.util.Comparator;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.stream.Stream;
 
 import static org.gradle.language.cpp.CppBinary.LINKAGE_ATTRIBUTE;
 
@@ -139,12 +128,10 @@ public class NativeBasePlugin implements Plugin<ProjectInternal> {
         addLifecycleTasks(tasks, components);
 
         // Add tasks to build various kinds of components
+
         addTasksForComponentWithExecutable(tasks, buildDirectory, components);
         addTasksForComponentWithSharedLibrary(tasks, buildDirectory, components);
         addTasksForComponentWithStaticLibrary(tasks, buildDirectory, components);
-
-        // Configure conventions
-        configureDevelopmentBinaryConvention(components, project.getProviders());
 
         // Add outgoing configurations and publications
         final ConfigurationContainer configurations = project.getConfigurations();
@@ -155,53 +142,6 @@ public class NativeBasePlugin implements Plugin<ProjectInternal> {
         addOutgoingConfigurationForRuntimeUsage(components, configurations);
 
         addPublicationsFromVariants(project, components);
-    }
-
-    private static class DevelopmentBinaryConvention implements Callable<SoftwareComponent> {
-        private static final int BUILD_FOR_HOST = 4;
-        private static final int SHARED_OR_EXECUTABLE = 2;
-        private static final int DEBUG_BUILD_TYPE = 1;
-        private final SoftwareComponent component;
-
-        private DevelopmentBinaryConvention(SoftwareComponent component) {
-            this.component = component;
-        }
-
-        private Stream<? extends ComponentWithNativeRuntime> getBinaryStream() {
-            if (component instanceof ComponentWithBinaries) {
-                return ((ComponentWithBinaries) component).getBinaries().get().stream().filter(ComponentWithNativeRuntime.class::isInstance).map(ComponentWithNativeRuntime.class::cast);
-            }
-            return Stream.empty();
-        }
-
-        @Override
-        public SoftwareComponent call() {
-            return getBinaryStream().sorted(Comparator.comparing(DevelopmentBinaryConvention::weight).reversed()).findFirst().orElse(null);
-        }
-
-        private static int weight(ComponentWithNativeRuntime binary) {
-            int result = 0;
-            if (binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture())) {
-                result |= BUILD_FOR_HOST;
-            }
-
-            if (binary instanceof CppSharedLibrary || binary instanceof SwiftSharedLibrary || binary instanceof CppExecutable || binary instanceof SwiftExecutable) {
-                result |= SHARED_OR_EXECUTABLE;
-            }
-
-            if (!binary.isOptimized()) {
-                result |= DEBUG_BUILD_TYPE;
-            }
-
-            return result;
-        }
-    }
-
-    private void configureDevelopmentBinaryConvention(SoftwareComponentContainer components, ProviderFactory providerFactory) {
-        components.withType(ConfigurableProductionComponent.class).configureEach(component -> {
-            Provider<SoftwareComponent> p = providerFactory.provider(new DevelopmentBinaryConvention(component));
-            component.getDevelopmentBinary().convention(p);
-        });
     }
 
     private static void addTargetMachineFactoryAsExtension(ExtensionContainer extensions, TargetMachineFactory targetMachineFactory) {

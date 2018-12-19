@@ -31,6 +31,7 @@ import org.gradle.language.nativeplatform.internal.ComponentWithNames;
 import org.gradle.language.nativeplatform.internal.Dimensions;
 import org.gradle.language.nativeplatform.internal.Names;
 import org.gradle.language.nativeplatform.internal.toolchains.ToolChainSelector;
+import org.gradle.language.swift.SwiftBinary;
 import org.gradle.language.swift.SwiftComponent;
 import org.gradle.language.swift.SwiftLibrary;
 import org.gradle.language.swift.SwiftPlatform;
@@ -42,9 +43,12 @@ import org.gradle.language.swift.internal.DefaultSwiftStaticLibrary;
 import org.gradle.nativeplatform.Linkage;
 import org.gradle.nativeplatform.OperatingSystemFamily;
 import org.gradle.nativeplatform.TargetMachineFactory;
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
 import org.gradle.util.GUtil;
 
 import javax.inject.Inject;
+import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 
 import static org.gradle.language.cpp.CppBinary.DEBUGGABLE_ATTRIBUTE;
 import static org.gradle.language.cpp.CppBinary.LINKAGE_ATTRIBUTE;
@@ -92,6 +96,35 @@ public class SwiftLibraryPlugin implements Plugin<Project> {
         module.set(GUtil.toCamelCase(project.getName()));
 
         library.getTargetMachines().convention(getDefaultTargetMachines(targetMachineFactory));
+        library.getDevelopmentBinary().convention(project.provider(new Callable<SwiftBinary>() {
+            @Override
+            public SwiftBinary call() throws Exception {
+                return getDebugSharedHostStream().findFirst().orElse(
+                        getDebugStaticHostStream().findFirst().orElse(
+                                getDebugSharedStream().findFirst().orElse(
+                                        getDebugStaticStream().findFirst().orElse(null))));
+            }
+
+            private Stream<SwiftBinary> getDebugStream() {
+                return library.getBinaries().get().stream().filter(binary -> !binary.isOptimized());
+            }
+
+            private Stream<SwiftBinary> getDebugSharedStream() {
+                return getDebugStream().filter(SwiftSharedLibrary.class::isInstance);
+            }
+
+            private Stream<SwiftBinary> getDebugSharedHostStream() {
+                return getDebugSharedStream().filter(binary -> binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture()));
+            }
+
+            private Stream<SwiftBinary> getDebugStaticStream() {
+                return getDebugStream().filter(SwiftStaticLibrary.class::isInstance);
+            }
+
+            private Stream<SwiftBinary> getDebugStaticHostStream() {
+                return getDebugStaticStream().filter(binary -> binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture()));
+            }
+        }));
 
         project.afterEvaluate(new Action<Project>() {
             @Override

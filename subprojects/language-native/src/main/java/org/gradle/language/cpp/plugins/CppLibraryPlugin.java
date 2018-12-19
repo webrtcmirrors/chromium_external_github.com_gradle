@@ -32,19 +32,24 @@ import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.Zip;
+import org.gradle.language.cpp.CppBinary;
 import org.gradle.language.cpp.CppLibrary;
 import org.gradle.language.cpp.CppPlatform;
+import org.gradle.language.cpp.CppSharedLibrary;
+import org.gradle.language.cpp.CppStaticLibrary;
 import org.gradle.language.cpp.internal.DefaultCppLibrary;
 import org.gradle.language.internal.NativeComponentFactory;
 import org.gradle.language.nativeplatform.internal.Dimensions;
 import org.gradle.language.nativeplatform.internal.toolchains.ToolChainSelector;
 import org.gradle.nativeplatform.Linkage;
 import org.gradle.nativeplatform.TargetMachineFactory;
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
 
 import javax.inject.Inject;
 import java.io.File;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 
 import static org.gradle.language.nativeplatform.internal.Dimensions.getDefaultTargetMachines;
 import static org.gradle.language.nativeplatform.internal.Dimensions.isBuildable;
@@ -95,6 +100,35 @@ public class CppLibraryPlugin implements Plugin<ProjectInternal> {
         library.getBaseName().set(project.getName());
 
         library.getTargetMachines().convention(getDefaultTargetMachines(targetMachineFactory));
+        library.getDevelopmentBinary().convention(project.provider(new Callable<CppBinary>() {
+            @Override
+            public CppBinary call() throws Exception {
+                return getDebugSharedHostStream().findFirst().orElse(
+                        getDebugStaticHostStream().findFirst().orElse(
+                                getDebugSharedStream().findFirst().orElse(
+                                        getDebugStaticStream().findFirst().orElse(null))));
+            }
+
+            private Stream<CppBinary> getDebugStream() {
+                return library.getBinaries().get().stream().filter(binary -> !binary.isOptimized());
+            }
+
+            private Stream<CppBinary> getDebugSharedStream() {
+                return getDebugStream().filter(CppSharedLibrary.class::isInstance);
+            }
+
+            private Stream<CppBinary> getDebugSharedHostStream() {
+                return getDebugSharedStream().filter(binary -> binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture()));
+            }
+
+            private Stream<CppBinary> getDebugStaticStream() {
+                return getDebugStream().filter(CppStaticLibrary.class::isInstance);
+            }
+
+            private Stream<CppBinary> getDebugStaticHostStream() {
+                return getDebugStaticStream().filter(binary -> binary.getTargetPlatform().getArchitecture().equals(DefaultNativePlatform.host().getArchitecture()));
+            }
+        }));
 
         library.getBinaries().whenElementKnown(binary -> {
             library.getMainPublication().addVariant(binary);
