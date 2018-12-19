@@ -35,6 +35,7 @@ import org.gradle.language.LibraryDependencies;
 import org.gradle.language.cpp.CppBinary;
 import org.gradle.language.cpp.CppLibrary;
 import org.gradle.language.cpp.CppPlatform;
+import org.gradle.language.internal.ConfigurableProductionComponent;
 import org.gradle.language.internal.DefaultLibraryDependencies;
 import org.gradle.language.nativeplatform.internal.PublicationAwareComponent;
 import org.gradle.nativeplatform.Linkage;
@@ -44,7 +45,7 @@ import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider;
 import javax.inject.Inject;
 import java.util.Collections;
 
-public class DefaultCppLibrary extends DefaultCppComponent implements CppLibrary, PublicationAwareComponent {
+public class DefaultCppLibrary extends DefaultCppComponent implements CppLibrary, PublicationAwareComponent, ConfigurableProductionComponent {
     private final ObjectFactory objectFactory;
     private final ConfigurableFileCollection publicHeaders;
     private final FileCollection publicHeadersWithConvention;

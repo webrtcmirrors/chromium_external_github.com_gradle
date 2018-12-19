@@ -25,6 +25,7 @@ import org.gradle.internal.Describables;
 import org.gradle.internal.DisplayName;
 import org.gradle.language.ComponentDependencies;
 import org.gradle.language.cpp.internal.NativeVariantIdentity;
+import org.gradle.language.internal.ConfigurableProductionComponent;
 import org.gradle.language.internal.DefaultComponentDependencies;
 import org.gradle.language.swift.SwiftApplication;
 import org.gradle.language.swift.SwiftExecutable;
@@ -34,7 +35,7 @@ import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider;
 
 import javax.inject.Inject;
 
-public class DefaultSwiftApplication extends DefaultSwiftComponent implements SwiftApplication {
+public class DefaultSwiftApplication extends DefaultSwiftComponent implements SwiftApplication, ConfigurableProductionComponent {
     private final ObjectFactory objectFactory;
     private final Property<SwiftExecutable> developmentBinary;
     private final DefaultComponentDependencies dependencies;
