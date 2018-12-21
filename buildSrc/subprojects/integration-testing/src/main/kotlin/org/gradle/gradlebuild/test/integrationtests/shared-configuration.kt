@@ -26,15 +26,17 @@ enum class TestType(val prefix: String, val executers: List<String>, val libRepo
 }
 
 
-data class BuildEnvironment(val os: String, val vm: String) {
-    fun asEnvironmentSpecificName(baseName: String) = "$baseName$os$vm".replace(" ", "")
+data class BuildEnvironment(val name: String, val os: String, val vm: String) {
+    fun asEnvironmentSpecificName(baseName: String) = "$baseName$name"
 }
 
 
 val buildEnvironments = listOf(
-    BuildEnvironment("Linux amd64", "OpenJDK 11"),
-    BuildEnvironment("Linux amd64", "OpenJDK 8"),
-    BuildEnvironment("Windows 7 amd64", "Oracle JDK 8")
+    BuildEnvironment("LinuxJ8", "Linux amd64", "OpenJDK 8"),
+    BuildEnvironment("WindowsJ8", "Windows 7 amd64", "Oracle JDK 8"),
+    BuildEnvironment("OSXJ8", "Mac OS X x86_64", "Oracle JDK 8"),
+    BuildEnvironment("Linux", "Linux amd64", "OpenJDK 11"),
+    BuildEnvironment("Windows", "Windows 7 amd64", "OpenJDK 11")
 )
 
 

@@ -189,54 +189,124 @@ allprojects {
 }
 
 distributedBuild {
+    excludeTask("prepareVersionsInfo") // TODO why can't we take this from cache?
+    excludeTask("jmhRunBytecodeGenerator") // JmhBytecodeGeneratorTask uses absolute path sensitivity
+
+    projectProperty("buildTimestamp", project.ext.get("buildTimestamp") as String)
+
+    val linuxJava8    = buildEnvironment("LinuxJ8","Linux amd64", "Oracle JDK 8")
+    val windowsJava8  = buildEnvironment("WindowsJ8","Windows 7 amd64", "Oracle JDK 8")
+    val osxJava8      = buildEnvironment("OSXJ8", "Mac OS X x86_64", "Oracle JDK 8")
+    val linuxJava11   = buildEnvironment("Linux", "Linux amd64", "OpenJDK 11")
+    val windowsJava11 = buildEnvironment("Windows", "Windows 7 amd64", "OpenJDK 11")
+
+    val compileAll = group("compileAll", linuxJava11) {
+        match<AbstractCompile>()
+        match<IncubatingApiReportTask>()
+    }
+
+    val sanityCheck = group("sanityCheck", linuxJava11) {
+        match(":docs:checkstyleApi")
+        match(":allIncubationReportsZip")
+        match(":distributions:checkBinaryCompatibility")
+        match(":codeQuality")
+        match(":docs:check")
+        match(":docs:javadocAll")
+        match(":architectureTest:test")
+        match(":toolingApi:toolingApiShadedJar")
+    }
+
+    val packageBuild = group("packageBuild", linuxJava11) {
+        match(":verifyIsProductionBuildEnvironment")
+        match(":distributions:buildDists")
+        match(":distributions:integTest")
+    }
+
+    val smokeTest = group("smokeTest", linuxJava11) {
+        match(":smokeTest:smokeTest")
+    }
+
+    val quickTest = subprojectDistribution("quickTest") {
+        subprojectTask("test")
+        subprojectTask("integTest")
+        subprojectTask("crossVersionTest")
+
+        excludeProject("architectureTest")
+        excludeProject("docs")
+        excludeProject("distributions")
+        excludeProject("soak")
+    }
+
+    val platformTest = subprojectDistribution("platformTest") {
+        projectProperty("testPartialVersions", true.toString())
+
+        subprojectTask("test")
+        subprojectTask("forkingIntegTest")
+        subprojectTask("forkingCrossVersionTest")
+    }
+
+    val noDaemonTest = subprojectDistribution("noDaemonTest") {
+        projectProperty("useAllDistribution", true.toString())
+
+        subprojectTask("noDaemonIntegTest")
+    }
+
+    val forceRealizeDependencyManagementTest = subprojectDistribution("forceRealizeDependencyManagementTest") {
+        subprojectTask("integForceRealizeTest")
+    }
+
+    val quickFeedbackCrossVersionTest = subprojectDistribution("quickFeedbackCrossVersionTest") {
+        subprojectTask("quickFeedbackCrossVersionTests")
+    }
+    val allVersionsCrossVersionTest = subprojectDistribution("allVersionsCrossVersionTest") {
+        projectProperty("testAllVersions", true.toString())
+
+        subprojectTask("allVersionsCrossVersionTests")
+        subprojectTask("integMultiVersionTest")
+    }
+
+    val parallelTest = subprojectDistribution("parallelTest") {
+        subprojectTask("parallelIntegTest")
+    }
+
+    val soakTest = subprojectDistribution("soakTest") {
+        subprojectTask("soakTest")
+    }
+
     pipeline {
-        val linuxJava11  = buildEnvironment("Linux amd64", "OpenJDK 11")
-        val linuxJava8   = buildEnvironment("Linux amd64", "OpenJDK 8")
-        val windowsJava8 = buildEnvironment("Windows 7 amd64", "Oracle JDK 8")
-
-        val compileAll = buildType("compileAllBuild", "compileAll",
-            splitBySubproject = false, environmentSpecific = false) {
-
-            projectProperty("buildTimestamp", project.ext.get("buildTimestamp") as String)
-
-            // TODO why can't we take this from cache?
-            excludeTask("prepareVersionsInfo")
-            // JmhBytecodeGeneratorTask uses absolute path sensitivity
-            excludeTask("jmhRunBytecodeGenerator")
+        stage("Compile All Warmup") {
+            runAll(compileAll)
         }
-
-        val sanityCheck = buildType("sanityCheck", listOf(":docs:checkstyleApi", ":allIncubationReportsZip",
-            ":distributions:checkBinaryCompatibility", "codeQuality", ":docs:check", ":docs:javadocAll",
-            ":architectureTest:test", ":toolingApi:toolingApiShadedJar"),
-            splitBySubproject = false, environmentSpecific = false) {
-
-            projectProperty("buildTimestamp", project.ext.get("buildTimestamp") as String)
-
-            excludeTask("validateTaskProperties")
-            // JapicmpTask uses absolute path sensitivity absolute path
-            excludeTask(":distributions:checkBinaryCompatibility")
+        stage("Quick Feedback Linux") {
+            runAll(sanityCheck)
+            runAll(quickTest, linuxJava11)
         }
-
-        val quickTest = buildType("quickTest", listOf("test", "integTest", "crossVersionTest")) {
-            projectProperty("buildTimestamp", project.ext.get("buildTimestamp") as String)
-
-            excludeProject("architectureTest")
-            excludeProject("docs")
-            excludeProject("distributions")
-            excludeProject("soak")
+        stage("Quick Feedback") {
+            runAll(quickTest, windowsJava8)
         }
-
-        pipeline {
-            stage("Compile", "Compile all code as preparation for everything else") {
-                invocation(compileAll, linuxJava11)
-            }
-            stage("Quick Feedback Linux", "Run checks and functional tests (embedded executer, Linux)") {
-                invocation(sanityCheck, linuxJava11)
-                invocation(quickTest, linuxJava11)
-            }
-            stage("Quick Feedback", "Run performance and functional tests (against distribution)") {
-                invocation(quickTest, windowsJava8)
-            }
+        stage("Ready for Merge") {
+            runAll(platformTest, linuxJava8)
+            runAll(platformTest, windowsJava11)
+            runAll(packageBuild)
+            runAll(smokeTest)
+            //TODO runAll(gradleception) - Implement as task in this build
+            //TODO performanceTest - Add testDistribution feature which runs each test on a separate agent
+        }
+        stage("Ready for Nightly") {
+            runAll(quickFeedbackCrossVersionTest, linuxJava8)
+            runAll(quickFeedbackCrossVersionTest, windowsJava8)
+            runAll(parallelTest, linuxJava11)
+        }
+        stage("Ready for Release") {
+            runAll(soakTest, linuxJava11)
+            runAll(soakTest, windowsJava8)
+            runAll(allVersionsCrossVersionTest, linuxJava8)
+            runAll(allVersionsCrossVersionTest, windowsJava8)
+            runAll(noDaemonTest, linuxJava8)
+            runAll(noDaemonTest, windowsJava11)
+            runAll(platformTest, osxJava8)
+            runAll(forceRealizeDependencyManagementTest, linuxJava8)
+            //TODO performanceExperiments
         }
     }
 }
