@@ -44,7 +44,6 @@ public class ClassSetAnalysis {
             for (String generated : entry.getValue()) {
                 String origin = entry.getKey();
                 dependenciesFromAnnotationProcessing.put(origin, generated);
-                dependenciesFromAnnotationProcessing.put(generated, origin);
             }
         }
         this.dependenciesFromAnnotationProcessing = dependenciesFromAnnotationProcessing.build();
