@@ -295,22 +295,28 @@ public class DefaultModuleRegistry implements ModuleRegistry, CachedJarFileStore
     }
 
     private File findJar(String name) {
-        Pattern pattern = Pattern.compile(Pattern.quote(name) + "-\\d.+\\.jar");
         if (gradleInstallation != null) {
             for (File libDir : gradleInstallation.getLibDirs()) {
                 for (File file : libDir.listFiles()) {
-                    if (pattern.matcher(file.getName()).matches()) {
+                    if (isJarWithModuleName(file, name)) {
                         return file;
                     }
                 }
             }
         }
         for (File file : classpath) {
-            if (pattern.matcher(file.getName()).matches()) {
+            if (isJarWithModuleName(file, name)) {
                 return file;
             }
         }
         return null;
+    }
+
+    private boolean isJarWithModuleName(File file, String name) {
+        String fileName = file.getName();return fileName.startsWith(name)
+            && fileName.endsWith(".jar")
+            && fileName.charAt(name.length()) == '-'
+            && Character.isDigit(fileName.charAt(name.length() + 1));
     }
 
     private File findDependencyJar(String module, String name) {
