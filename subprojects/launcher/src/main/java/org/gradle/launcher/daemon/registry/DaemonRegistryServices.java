@@ -16,36 +16,24 @@
 package org.gradle.launcher.daemon.registry;
 
 import org.gradle.cache.FileLockManager;
-import org.gradle.cache.internal.Cache;
-import org.gradle.cache.internal.CacheAccessSerializer;
-import org.gradle.cache.internal.MapBackedCache;
-import org.gradle.internal.Factory;
 import org.gradle.internal.nativeintegration.filesystem.Chmod;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 /**
  * Takes care of instantiating and wiring together the services required for a daemon registry.
  */
 public class DaemonRegistryServices {
     private final File daemonBaseDir;
-    private final Cache<File, DaemonRegistry> daemonRegistryCache;
 
-    private static final Map<File, DaemonRegistry> REGISTRY_STORAGE = new HashMap<File, DaemonRegistry>();
-    private static final Cache<File, DaemonRegistry> REGISTRY_CACHE = new CacheAccessSerializer<File, DaemonRegistry>(
-            new MapBackedCache<File, DaemonRegistry>(REGISTRY_STORAGE)
-    );
+    private static final ConcurrentMap<File, DaemonRegistry> REGISTRY_STORAGE = new ConcurrentHashMap<File, DaemonRegistry>();
 
     public DaemonRegistryServices(File daemonBaseDir) {
-        this(daemonBaseDir, REGISTRY_CACHE);
-    }
-
-    DaemonRegistryServices(File daemonBaseDir, Cache<File, DaemonRegistry> daemonRegistryCache) {
         this.daemonBaseDir = daemonBaseDir;
-        this.daemonRegistryCache = daemonRegistryCache;
     }
 
     DaemonDir createDaemonDir() {
@@ -54,8 +42,9 @@ public class DaemonRegistryServices {
 
     DaemonRegistry createDaemonRegistry(DaemonDir daemonDir, final FileLockManager fileLockManager, final Chmod chmod) {
         final File daemonRegistryFile = daemonDir.getRegistry();
-        return daemonRegistryCache.get(daemonRegistryFile, new Factory<DaemonRegistry>() {
-            public DaemonRegistry create() {
+        return REGISTRY_STORAGE.computeIfAbsent(daemonRegistryFile, new Function<File, DaemonRegistry>() {
+            @Override
+            public DaemonRegistry apply(File file) {
                 return new PersistentDaemonRegistry(daemonRegistryFile, fileLockManager, chmod);
             }
         });
