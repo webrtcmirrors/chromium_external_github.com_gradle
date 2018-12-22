@@ -55,6 +55,7 @@ import org.gradle.internal.time.Clock;
 import javax.annotation.Nullable;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -70,8 +71,8 @@ public class OutputEventRenderer implements OutputEventListener, LoggingRouter {
     private final OutputEventTransformer transformer = new OutputEventTransformer(formatters.getSource());
 
     private ColorMap colourMap;
-    private OutputStream originalStdOut;
-    private OutputStream originalStdErr;
+    private PrintStream originalStdOut;
+    private PrintStream originalStdErr;
     private OutputEventListener stdOutListener;
     private OutputEventListener stdErrListener;
     private OutputEventListener console;
@@ -135,11 +136,11 @@ public class OutputEventRenderer implements OutputEventListener, LoggingRouter {
         onOutput(new FlushOutputEvent());
     }
 
-    public OutputStream getOriginalStdOut() {
+    public PrintStream getOriginalStdOut() {
         return originalStdOut;
     }
 
-    public OutputStream getOriginalStdErr() {
+    public PrintStream getOriginalStdErr() {
         return originalStdErr;
     }
 
