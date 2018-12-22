@@ -32,7 +32,7 @@ public class ThreadFactoryImpl implements ThreadFactory {
     }
 
     public Thread newThread(Runnable r) {
-        Thread thread = new Thread(new ManagedThreadRunnable(r));
+        Thread thread = new GradleThread(r);
         long count = counter.incrementAndGet();
         if (count == 1) {
             thread.setName(displayName);
@@ -40,19 +40,5 @@ public class ThreadFactoryImpl implements ThreadFactory {
             thread.setName(displayName + " Thread " + count);
         }
         return thread;
-    }
-
-    private static class ManagedThreadRunnable implements Runnable {
-        private final Runnable delegate;
-
-        private ManagedThreadRunnable(Runnable delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void run() {
-            GradleThread.setManaged();
-            delegate.run();
-        }
     }
 }

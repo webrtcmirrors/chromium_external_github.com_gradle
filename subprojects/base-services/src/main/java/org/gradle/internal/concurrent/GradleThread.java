@@ -15,7 +15,7 @@
  */
 package org.gradle.internal.concurrent;
 
-public class GradleThread {
+public class GradleThread extends Thread {
     private static final ThreadLocal<Boolean> GRADLE_MANAGED = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
@@ -24,14 +24,22 @@ public class GradleThread {
     };
 
     public static void setManaged() {
-        GRADLE_MANAGED.set(Boolean.TRUE);
+        if (!(Thread.currentThread() instanceof GradleThread)) {
+            GRADLE_MANAGED.set(Boolean.TRUE);
+        }
     }
 
     public static void setUnmanaged() {
-        GRADLE_MANAGED.set(Boolean.FALSE);
+        if (!(Thread.currentThread() instanceof GradleThread)) {
+            GRADLE_MANAGED.set(Boolean.FALSE);
+        }
     }
 
     public static boolean isManaged() {
-        return GRADLE_MANAGED.get();
+        return (Thread.currentThread() instanceof GradleThread) || GRADLE_MANAGED.get();
+    }
+
+    public GradleThread(Runnable target) {
+        super(target);
     }
 }

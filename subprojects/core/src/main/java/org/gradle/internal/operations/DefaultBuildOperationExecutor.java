@@ -231,7 +231,7 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
         });
     }
 
-    private <O extends BuildOperation> O execute(final BuildOperationDescriptor.Builder descriptorBuilder, @Nullable BuildOperationState defaultParent, BuildOperationExecution<O> execution) {
+    private <O extends BuildOperation> O execute(final BuildOperationDescriptor.Builder descriptorBuilder, @Nullable final BuildOperationState defaultParent, BuildOperationExecution<O> execution) {
         final BuildOperationState parent = determineParent(descriptorBuilder, defaultParent);
 
         final BuildOperationDescriptor descriptor = createDescriptor(descriptorBuilder, parent);
@@ -241,7 +241,6 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
 
         newOperation.setRunning(true);
 
-        final BuildOperationState parentOperation = getCurrentBuildOperation();
         setCurrentBuildOperation(newOperation);
 
         final MutableReference<ProgressLogger> progressLoggerHolder = MutableReference.empty();
@@ -270,7 +269,7 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
 
                 @Override
                 public void close() {
-                    setCurrentBuildOperation(parentOperation);
+                    setCurrentBuildOperation(defaultParent);
                     newOperation.setRunning(false);
                     LOGGER.debug("Build operation '{}' completed", descriptor.getDisplayName());
                 }
@@ -326,6 +325,9 @@ public class DefaultBuildOperationExecutor implements BuildOperationExecutor, St
     }
 
     private void maybeStopUnmanagedThreadOperation() {
+        if (GradleThread.isManaged()) {
+            return;
+        }
         BuildOperationState current = getCurrentBuildOperation();
         if (current instanceof UnmanagedThreadOperation) {
             try {
