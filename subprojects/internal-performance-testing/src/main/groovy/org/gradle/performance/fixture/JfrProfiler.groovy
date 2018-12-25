@@ -60,11 +60,14 @@ class JfrProfiler extends Profiler implements Stoppable {
     List<String> getAdditionalJvmOpts(BuildExperimentSpec spec) {
         String flightRecordOptions = "stackdepth=1024"
         def jfrFile = getJfrFile(spec)
+        def gcLogFile = new File(jfrFile.parentFile, 'gc.log')
         jfrFile.parentFile.mkdirs()
         if (!useDaemon(spec)) {
             flightRecordOptions += ",defaultrecording=true,dumponexit=true,dumponexitpath=${jfrFile},settings=$config"
         }
-        CollectionUtils.stringize(["-XX:+UnlockCommercialFeatures", "-XX:+FlightRecorder", "-XX:FlightRecorderOptions=$flightRecordOptions", "-XX:+UnlockDiagnosticVMOptions", "-XX:+DebugNonSafepoints"])
+        CollectionUtils.stringize(["-XX:+UnlockCommercialFeatures", "-XX:+FlightRecorder", "-XX:FlightRecorderOptions=$flightRecordOptions", "-XX:+UnlockDiagnosticVMOptions", "-XX:+DebugNonSafepoints",
+            "-XX:+PrintGCDetails", '-XX:+PrintGCTimeStamps', '-XX:+PrintHeapAtGC', '-XX:+PrintReferenceGC', '-XX:+PrintTenuringDistribution', "-Xloggc:${gcLogFile.absolutePath}"
+        ])
     }
 
     @Override
