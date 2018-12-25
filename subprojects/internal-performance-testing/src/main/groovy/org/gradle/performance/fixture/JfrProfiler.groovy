@@ -83,7 +83,6 @@ class JfrProfiler extends Profiler implements Stoppable {
 
     void start(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
-            jCmd.execute(pid.pid, "GC.run")
             jCmd.execute(pid.pid, "JFR.start", "name=profile", "settings=$config")
         }
     }
