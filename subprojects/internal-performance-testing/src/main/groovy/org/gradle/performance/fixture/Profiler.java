@@ -40,4 +40,6 @@ public abstract class Profiler {
     public abstract void start(BuildExperimentSpec spec);
 
     public abstract void stop(BuildExperimentSpec spec);
+
+    public abstract void gc(BuildExperimentSpec spec);
 }

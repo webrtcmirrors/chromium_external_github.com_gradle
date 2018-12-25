@@ -97,6 +97,13 @@ class JfrProfiler extends Profiler implements Stoppable {
     }
 
     @Override
+    void gc(BuildExperimentSpec spec) {
+        if (useDaemon(spec)) {
+            jCmd.execute(pid.pid, "GC.run")
+        }
+    }
+
+    @Override
     void stop() {
         flameGraphGenerator.generateDifferentialGraphs(logDirectory)
     }
