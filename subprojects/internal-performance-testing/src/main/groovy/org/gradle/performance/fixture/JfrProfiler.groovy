@@ -99,6 +99,8 @@ class JfrProfiler extends Profiler implements Stoppable {
     void gc(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
             jCmd.execute(pid.pid, "GC.run")
+            // Make sure GC completes in another JVM
+            Thread.sleep(500)
         }
     }
 
