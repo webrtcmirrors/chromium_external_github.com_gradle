@@ -27,7 +27,8 @@ public abstract class Profiler {
     public static Profiler create() {
         String targetDir = System.getProperty(TARGET_DIR_KEY);
         if (targetDir != null && !Jvm.current().isIbmJvm()) {
-            return new JfrProfiler(new File(targetDir));
+//            return new JfrProfiler(new File(targetDir));
+            return new SolarisProfiler(new File(targetDir));
         } else {
             return new NoopProfiler();
         }

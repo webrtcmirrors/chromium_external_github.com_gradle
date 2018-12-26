@@ -37,7 +37,7 @@ class JfrProfiler extends Profiler implements Stoppable {
     private final File logDirectory
     private final File config
     private final JCmd jCmd
-    private final PidInstrumentation pid
+    final PidInstrumentation pid
     private final JfrFlameGraphGenerator flameGraphGenerator
 
     JfrProfiler(File targetDir) {
@@ -75,7 +75,7 @@ class JfrProfiler extends Profiler implements Stoppable {
         pid.gradleArgs
     }
 
-    private File getJfrFile(BuildExperimentSpec spec) {
+    File getJfrFile(BuildExperimentSpec spec) {
         def fileSafeName = spec.displayName.replaceAll('[^a-zA-Z0-9.-]', '-').replaceAll('-+', '-')
         def baseDir = new File(logDirectory, fileSafeName)
         new File(baseDir, "profile.jfr")
@@ -109,7 +109,7 @@ class JfrProfiler extends Profiler implements Stoppable {
         flameGraphGenerator.generateDifferentialGraphs(logDirectory)
     }
 
-    private boolean useDaemon(BuildExperimentSpec spec) {
+    boolean useDaemon(BuildExperimentSpec spec) {
         spec.displayInfo.daemon
     }
 }
