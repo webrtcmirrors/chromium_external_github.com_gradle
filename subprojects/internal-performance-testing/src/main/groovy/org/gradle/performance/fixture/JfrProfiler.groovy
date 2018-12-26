@@ -66,7 +66,7 @@ class JfrProfiler extends Profiler implements Stoppable {
             flightRecordOptions += ",defaultrecording=true,dumponexit=true,dumponexitpath=${jfrFile},settings=$config"
         }
         CollectionUtils.stringize(["-XX:+UnlockCommercialFeatures", "-XX:+FlightRecorder", "-XX:FlightRecorderOptions=$flightRecordOptions", "-XX:+UnlockDiagnosticVMOptions", "-XX:+DebugNonSafepoints",
-            "-XX:+PrintGCDetails", '-XX:+PrintGCTimeStamps', '-XX:+PrintHeapAtGC', '-XX:+PrintReferenceGC', '-XX:+PrintTenuringDistribution', "-Xloggc:${gcLogFile.absolutePath}"
+            "-XX:+PrintGCDetails", '-XX:+PrintGCDateStamps', '-XX:+PrintHeapAtGC', '-XX:+PrintReferenceGC', '-XX:+PrintTenuringDistribution', "-Xloggc:${gcLogFile.absolutePath}"
         ])
     }
 
