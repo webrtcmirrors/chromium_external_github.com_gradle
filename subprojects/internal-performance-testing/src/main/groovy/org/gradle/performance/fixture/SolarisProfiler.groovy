@@ -27,14 +27,15 @@ class SolarisProfiler extends JfrProfiler {
 
     void start(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
-            Process process = ["collect", "-P", pid.pid, "-d", getJfrFile(spec), "-o", "profile.er"].execute()
-            process.waitForProcessOutput(System.out as Appendable, System.err as Appendable)
+            new ProcessBuilder(["collect", "-P", pid.pid, "-d", getJfrFile(spec).absolutePath, "-o", "profile.er"]).inheritIO().start()
+            Thread.sleep(1000)
         }
     }
 
     void stop(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
-            ["kill", '-SIGINT', pid.pid].execute().waitForProcessOutput(System.out as Appendable, System.err as Appendable)
+            int retCode = new ProcessBuilder(["kill", '-SIGINT', pid.pid]).inheritIO().start().waitFor()
+            assert retCode == 0
         }
     }
 
