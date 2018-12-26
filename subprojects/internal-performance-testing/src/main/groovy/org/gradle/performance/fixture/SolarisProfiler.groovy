@@ -40,4 +40,7 @@ class SolarisProfiler extends JfrProfiler {
 
     void gc(BuildExperimentSpec spec) {
     }
+
+    void stop() {
+    }
 }
