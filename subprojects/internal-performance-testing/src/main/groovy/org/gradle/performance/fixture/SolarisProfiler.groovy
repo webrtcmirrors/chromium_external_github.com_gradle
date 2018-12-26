@@ -23,12 +23,13 @@ class SolarisProfiler extends JfrProfiler {
     }
 
     List<String> getAdditionalJvmOpts(BuildExperimentSpec spec) {
+        getJfrFile(spec).parentFile.mkdirs()
         []
     }
 
     void start(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
-            Process process = new ProcessBuilder(["collect", "-P", pid.pid, "-d", getJfrFile(spec).absolutePath, "-o", "profile.er"]).inheritIO().start()
+            Process process = new ProcessBuilder(["collect", "-P", pid.pid, "-d", getJfrFile(spec).parentFile.absolutePath, "-o", "profile.er"]).inheritIO().start()
             collectPid = process.pid
             Thread.sleep(1000)
         }
