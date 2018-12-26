@@ -39,4 +39,9 @@ class NoopProfiler extends Profiler {
     public void stop(BuildExperimentSpec spec) {
 
     }
+
+    @Override
+    public void gc(BuildExperimentSpec spec) {
+
+    }
 }

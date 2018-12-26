@@ -96,6 +96,7 @@ public class BuildExperimentRunner {
         for (int i = 0; i < invocationCount; i++) {
             System.out.println();
             System.out.println(String.format("Test run #%s", i + 1));
+            profiler.gc(experiment);
             BuildExperimentInvocationInfo info = new DefaultBuildExperimentInvocationInfo(experiment, projectDir, Phase.MEASUREMENT, i + 1, invocationCount);
             runOnce(session, results, info);
         }

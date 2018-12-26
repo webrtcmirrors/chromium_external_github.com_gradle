@@ -272,6 +272,7 @@ abstract class AbstractToolingApiCrossVersionPerformanceTest extends Specificati
                 def count = iterationCount("runs", invocationCount)
                 count.times { n ->
                     println "Run #${n + 1}"
+                    profiler.gc(experimentSpec)
                     versionResults.add(timer.measure {
                         toolingApi.withConnection(wrapAction(action, experimentSpec))
                     })
