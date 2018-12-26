@@ -17,6 +17,7 @@
 package org.gradle.performance.fixture
 
 class SolarisProfiler extends JfrProfiler {
+    long collectPid
     SolarisProfiler(File targetDir) {
         super(targetDir)
     }
@@ -27,14 +28,15 @@ class SolarisProfiler extends JfrProfiler {
 
     void start(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
-            new ProcessBuilder(["collect", "-P", pid.pid, "-d", getJfrFile(spec).absolutePath, "-o", "profile.er"]).inheritIO().start()
+            Process process = new ProcessBuilder(["collect", "-P", pid.pid, "-d", getJfrFile(spec).absolutePath, "-o", "profile.er"]).inheritIO().start()
+            collectPid = process.pid
             Thread.sleep(1000)
         }
     }
 
     void stop(BuildExperimentSpec spec) {
         if (useDaemon(spec)) {
-            int retCode = new ProcessBuilder(["kill", '-SIGINT', pid.pid]).inheritIO().start().waitFor()
+            int retCode = new ProcessBuilder(["kill", '-SIGINT', collectPid.toString()]).inheritIO().start().waitFor()
             assert retCode == 0
         }
     }
