@@ -31,6 +31,26 @@ class JfrToStacksConverter {
         stacks.parentFile.mkdirs()
         String[] args = ["--jfrdump", jfrRecording.absolutePath, "--output", stacks.absolutePath]
         args += options
-        Application.main(args)
+        try {
+            Application.main(args)
+        } catch (Exception e) {
+//            private void checkMemoryUsage()
+//            {
+//                Runtime rt = Runtime.getRuntime();
+//                long maxMemory = rt.maxMemory();
+//                long availableMemory = maxMemory - rt.totalMemory() + rt.freeMemory();
+//                if (availableMemory < 0.1D * maxMemory)
+//                {
+//                    NotEnoughMemoryException nem = new NotEnoughMemoryException();
+//                    setFailed(nem);
+//                }
+//            }
+            Runtime rt = Runtime.getRuntime()
+            long maxMemory = rt.maxMemory()
+            long totalMemory = rt.totalMemory()
+            long freeMemory = rt.freeMemory()
+            long availableMemory = maxMemory - totalMemory + freeMemory
+            throw new RuntimeException("maxMemory: $maxMemory, totalMemory: $totalMemory, freeMemory: $freeMemory, availableMemory: $availableMemory", e)
+        }
     }
 }
