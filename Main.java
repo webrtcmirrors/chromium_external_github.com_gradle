@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -82,7 +83,7 @@ public class Main {
         Experiment version1 = runExperiment(versions[0]);
         Experiment version2 = runExperiment(versions[1]);
 
-        return new TwoExperiments(versions[0], versions[1]);
+        return new TwoExperiments(version1, version2);
     }
 
     private static TwoExperiments runOneByOne() {
@@ -96,15 +97,15 @@ public class Main {
         prepareForExperiment(version1);
         prepareForExperiment(version2);
 
-        doWarmUp(getExpProject(version1), args);
-        doWarmUp(getExpProject(version2), args);
+        doWarmUp(getExpProject(version1), getExpArgs(version1, "help"));
+        doWarmUp(getExpProject(version2), getExpArgs(version2, "help"));
 
         List<Long> version1Results = new ArrayList<>();
         List<Long> version2Results = new ArrayList<>();
 
-        for (int i = 0; i < Integer.parseInt(System.getProperty("runCount"))) {
-            version1Results.add(measureOnce(getExpProject(version1), getExpArgs(version1), "help"));
-            version2Results.add(measureOnce(getExpProject(version2), getExpArgs(version2), "help"));
+        for (int i = 0; i < Integer.parseInt(System.getProperty("runCount")); ++i) {
+            version1Results.add(measureOnce(getExpProject(version1), getExpArgs(version1, "help")));
+            version2Results.add(measureOnce(getExpProject(version2), getExpArgs(version2, "help")));
         }
         stopDaemon(version1);
         stopDaemon(version2);
