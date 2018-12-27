@@ -67,12 +67,12 @@ public class Main {
             "--stacktrace",
             "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
             "--init-script",
-            "/tmp/mirrors299882786104597356.gradle",
+            projectDirPath + "/mirrors2969901031757590387.gradle",
             "-I",
-            "/tmp/mirrors1108972224173691270.gradle",
+            projectDirPath + "/mirrors879648600275838071.gradle",
             "-Dorg.gradle.internal.plugins.portal.url.override=https://plugins.gradle.org/m2",
             "--init-script",
-            "/tmp/pid-instrumentation7878867937066439359.gradle"
+            projectDirPath + "/pid-instrumentation8752482104302232024.gradle"
         );
     }
 
