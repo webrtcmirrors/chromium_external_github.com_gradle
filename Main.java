@@ -68,30 +68,71 @@ public class Main {
     }
 
     private static TwoExperiments runASetOfExperiments() {
+        String strategy = System.getProperty("strategy");
+
+        TwoExperiments comparison = "oneByOne".equals(strategy) ? runOneByOne() : runSetBySet();
+
+        comparison.printResultsAndConfidence();
+        return comparison;
+    }
+
+    private static TwoExperiments runSetBySet() {
         String[] versions = System.getProperty("expVersions").split(",");
 
         Experiment version1 = runExperiment(versions[0]);
         Experiment version2 = runExperiment(versions[1]);
 
-        TwoExperiments comparison = new TwoExperiments(version1, version2);
-        comparison.printResultsAndConfidence();
-        return comparison;
+        return new TwoExperiments(versions[0], versions[1]);
     }
 
+    private static TwoExperiments runOneByOne() {
+        String[] versions = System.getProperty("expVersions").split(",");
 
-    private static Experiment runExperiment(String version) {
+        String version1 = versions[0];
+        String version2 = versions[1];
+
+        assertTrue(!version1.equals(version2));
+
+        prepareForExperiment(version1);
+        prepareForExperiment(version2);
+
+        doWarmUp(getExpProject(version1), args);
+        doWarmUp(getExpProject(version2), args);
+
+        List<Long> version1Results = new ArrayList<>();
+        List<Long> version2Results = new ArrayList<>();
+
+        for (int i = 0; i < Integer.parseInt(System.getProperty("runCount"))) {
+            version1Results.add(measureOnce(getExpProject(version1), getExpArgs(version1), "help"));
+            version2Results.add(measureOnce(getExpProject(version2), getExpArgs(version2), "help"));
+        }
+        stopDaemon(version1);
+        stopDaemon(version2);
+
+        return new TwoExperiments(new Experiment(version1, version1Results), new Experiment(version2, version2Results));
+    }
+
+    private static void prepareForExperiment(String version) {
         initDirectory(getGradleUserHome(version));
         deleteDirectory(getExpProject(version));
 
         run(projectDir, "cp", "-r",
             projectDirPath + "/subprojects/performance/build/largeJavaMultiProjectKotlinDsl",
             getExpProject(version).getAbsolutePath());
+    }
+
+    private static void stopDaemon(String version) {
+        run(getExpProject(version), getExpArgs(version, "--stop"));
+    }
+
+    private static Experiment runExperiment(String version) {
+        prepareForExperiment(version);
 
         List<String> args = getExpArgs(version, "help");
         doWarmUp(getExpProject(version), args);
         List<Long> results = doRun(getExpProject(version), args);
 
-        run(getExpProject(version), getExpArgs(version, "--stop"));
+        stopDaemon(version);
         return new Experiment(version, results);
     }
 
