@@ -17,7 +17,7 @@ public class Main {
         gradleBinary.put("baseline",
             projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000/bin/gradle");
         gradleBinary.put("current",
-            projectDirPath + "/performance/wrapper/build/integ test/bin/gradle");
+            projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
     }
 
     public static void main(String[] args) {
