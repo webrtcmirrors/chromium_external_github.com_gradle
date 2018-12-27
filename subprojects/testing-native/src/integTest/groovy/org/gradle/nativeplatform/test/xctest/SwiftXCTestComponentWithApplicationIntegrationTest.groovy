@@ -18,6 +18,7 @@ package org.gradle.nativeplatform.test.xctest
 
 import org.gradle.nativeplatform.fixtures.app.SourceElement
 import org.gradle.nativeplatform.fixtures.app.SwiftAppWithXCTest
+import org.gradle.test.fixtures.file.TestFile
 
 class SwiftXCTestComponentWithApplicationIntegrationTest extends AbstractSwiftXCTestComponentWithTestedComponentIntegrationTest {
     @Override
@@ -42,4 +43,10 @@ class SwiftXCTestComponentWithApplicationIntegrationTest extends AbstractSwiftXC
     protected SourceElement getComponentUnderTest() {
         return new SwiftAppWithXCTest()
     }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/lib")
+    }
+
 }

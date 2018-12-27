@@ -16,7 +16,7 @@
 
 package org.gradle.language.swift
 
-
+import org.gradle.internal.os.OperatingSystem
 import org.gradle.nativeplatform.fixtures.RequiresInstalledToolChain
 import org.gradle.nativeplatform.fixtures.ToolChainRequirement
 import org.gradle.nativeplatform.fixtures.app.SourceElement
@@ -26,6 +26,7 @@ import org.gradle.nativeplatform.fixtures.app.SwiftAppWithLibrary
 import org.gradle.nativeplatform.fixtures.app.SwiftAppWithLibraryAndOptionalFeature
 import org.gradle.nativeplatform.fixtures.app.SwiftAppWithOptionalFeature
 import org.gradle.nativeplatform.fixtures.app.SwiftCompilerDetectingApp
+import org.gradle.test.fixtures.file.TestFile
 
 @RequiresInstalledToolChain(ToolChainRequirement.SWIFTC)
 class SwiftApplicationIntegrationTest extends AbstractSwiftIntegrationTest implements SwiftTaskNames {
@@ -54,6 +55,11 @@ class SwiftApplicationIntegrationTest extends AbstractSwiftIntegrationTest imple
     @Override
     protected String getComponentUnderTestDsl() {
         return "application"
+    }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/exe")
     }
 
     def "relinks when an upstream dependency changes in ABI compatible way"() {
@@ -146,26 +152,6 @@ class SwiftApplicationIntegrationTest extends AbstractSwiftIntegrationTest imple
 
         executable("build/exe/main/debug/App").assertExists()
         file("build/modules/main/debug/App.swiftmodule").assertIsFile()
-        installation("build/install/main/debug").exec().out == app.expectedOutput
-    }
-
-    def "sources are compiled and linked with Swift tools with 'dot' in project name"() {
-        given:
-        def app = new SwiftApp()
-        settingsFile << "rootProject.name = 'app.test'"
-        app.writeToProject(testDirectory)
-
-        and:
-        buildFile << """
-            apply plugin: 'swift-application'
-         """
-
-        expect:
-        succeeds "assemble"
-        result.assertTasksExecuted(":compileDebugSwift", ":linkDebug", ":installDebug", ":assemble")
-
-        executable("build/exe/main/debug/app.test").assertExists()
-        file("build/modules/main/debug/app.test.swiftmodule").assertIsFile()
         installation("build/install/main/debug").exec().out == app.expectedOutput
     }
 
@@ -1034,5 +1020,47 @@ class SwiftApplicationIntegrationTest extends AbstractSwiftIntegrationTest imple
         succeeds ":assemble"
         result.assertTasksExecuted(":compileDebugSwift", ":linkDebug", ":installDebug", ":assemble")
         installation("build/install/main/debug").exec().out == app.expectedOutput
+    }
+
+    def "can contain dot in project name for installed application"() {
+        def app = new SwiftAppWithLibrary()
+        app.executable.main.greeterModule = "LibWithDot"
+
+        given:
+        settingsFile << "include 'app.with.dot', 'lib.with.dot'"
+        buildFile << """
+            project(':app.with.dot') {
+                apply plugin: 'swift-application'
+                application {
+                    dependencies {
+                        implementation project(':lib.with.dot')
+                    }
+                }
+            }
+            project(':lib.with.dot') {
+                apply plugin: 'swift-library'
+            }
+        """
+        app.library.writeToProject(file("lib.with.dot"))
+        app.executable.writeToProject(file("app.with.dot"))
+
+        and:
+        def projectName = "foo.bar"
+        settingsFile << "\nrootProject.name = '$projectName'"
+
+        expect:
+        succeeds ":app.with.dot:assemble"
+
+        result.assertTasksExecuted(tasks(':lib.with.dot').debug.allToLink, tasks(':app.with.dot').debug.allToInstall, ":app.with.dot:assemble")
+
+        def installation = installation("app.with.dot/build/install/main/debug")
+        installation.assertInstalled()
+        installation.exec().out == app.expectedOutput
+        installation.installDir.file("AppWithDot")
+        installation.libraryDir.listFiles().every {
+            it.file && it.name in ["libLibWithDot" + OperatingSystem.current().sharedLibrarySuffix, "AppWithDot"]
+        }
+        file("app.with.dot/build/exe/main/debug/AppWithDot").assertIsFile()
+        file("lib.with.dot/build/lib/main/debug/libLibWithDot" + OperatingSystem.current().sharedLibrarySuffix).assertIsFile()
     }
 }

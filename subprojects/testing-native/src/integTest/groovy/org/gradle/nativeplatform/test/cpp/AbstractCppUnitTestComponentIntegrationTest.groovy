@@ -17,6 +17,7 @@
 package org.gradle.nativeplatform.test.cpp
 
 import org.gradle.language.cpp.AbstractCppComponentIntegrationTest
+import org.gradle.test.fixtures.file.TestFile
 
 abstract class AbstractCppUnitTestComponentIntegrationTest extends AbstractCppComponentIntegrationTest {
     def "check task warns when current operating system family is excluded"() {
@@ -44,6 +45,7 @@ abstract class AbstractCppUnitTestComponentIntegrationTest extends AbstractCppCo
         return 'test'
     }
 
+    @Override
     protected String getTaskNameToAssembleDevelopmentBinaryWithArchitecture(String architecture) {
         return ":runTest${architecture.capitalize()}"
     }
@@ -51,5 +53,10 @@ abstract class AbstractCppUnitTestComponentIntegrationTest extends AbstractCppCo
     @Override
     protected String getComponentName() {
         return "test"
+    }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/exe")
     }
 }

@@ -16,6 +16,7 @@
 
 package org.gradle.language.cpp
 
+import org.gradle.internal.os.OperatingSystem
 import org.gradle.nativeplatform.fixtures.RequiresInstalledToolChain
 import org.gradle.nativeplatform.fixtures.ToolChainRequirement
 import org.gradle.nativeplatform.fixtures.app.CppApp
@@ -26,6 +27,7 @@ import org.gradle.nativeplatform.fixtures.app.CppAppWithLibraryAndOptionalFeatur
 import org.gradle.nativeplatform.fixtures.app.CppAppWithOptionalFeature
 import org.gradle.nativeplatform.fixtures.app.CppCompilerDetectingTestApp
 import org.gradle.nativeplatform.fixtures.app.SourceElement
+import org.gradle.test.fixtures.file.TestFile
 import spock.lang.Issue
 
 import static org.gradle.util.Matchers.containsText
@@ -59,6 +61,11 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
         return new CppApp()
     }
 
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/exe")
+    }
+
     def "skip compile, link and install tasks when no source"() {
         given:
         buildFile << """
@@ -80,10 +87,10 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
 
         and:
         file("src/main/cpp/broken.cpp") << """
-        #include <iostream>
+            #include <iostream>
 
-        'broken
-"""
+            'broken
+        """
 
         expect:
         fails "assemble"
@@ -142,38 +149,6 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
         executable("build/exe/main/debug/app").assertHasDebugSymbolsFor(app.sourceFileNamesWithoutHeaders)
         installation("build/install/main/debug").exec().out == app.withFeatureDisabled().expectedOutput
     }
-
-    def "can build debug and release variants of executable with 'dot' in project name"() {
-        settingsFile << "rootProject.name = 'app.test'"
-        def app = new CppAppWithOptionalFeature()
-
-        given:
-        app.writeToProject(testDirectory)
-
-        and:
-        buildFile << """
-            apply plugin: 'cpp-application'
-            application.binaries.get { it.optimized }.configure {
-                compileTask.get().macros(WITH_FEATURE: "true")
-            }
-         """
-
-        expect:
-        succeeds tasks.release.assemble
-        result.assertTasksExecuted(tasks.release.allToInstall, tasks.release.extract, tasks.release.assemble)
-
-        executable("build/exe/main/release/app.test").assertExists()
-        executable("build/exe/main/release/app.test").assertHasStrippedDebugSymbolsFor(app.sourceFileNamesWithoutHeaders)
-        installation("build/install/main/release").exec().out == app.withFeatureEnabled().expectedOutput
-
-        succeeds tasks.debug.assemble
-        result.assertTasksExecuted(tasks.debug.allToInstall, tasks.debug.assemble)
-
-        executable("build/exe/main/debug/app.test").assertExists()
-        executable("build/exe/main/debug/app.test").assertHasDebugSymbolsFor(app.sourceFileNamesWithoutHeaders)
-        installation("build/install/main/debug").exec().out == app.withFeatureDisabled().expectedOutput
-    }
-
 
     def "can use executable file as task dependency"() {
         settingsFile << "rootProject.name = 'app'"
@@ -425,36 +400,6 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
         def installation = installation("app/build/install/main/debug")
         installation.exec().out == app.expectedOutput
         installation.assertIncludesLibraries("hello")
-    }
-
-    def "can compile and link against a library with 'dot' in project name"() {
-        settingsFile << "include 'app.test', 'hello.test'"
-        def app = new CppAppWithLibrary()
-
-        given:
-        buildFile << """
-            project(':app.test') {
-                apply plugin: 'cpp-application'
-                dependencies {
-                    implementation project(':hello.test')
-                }
-            }
-            project(':hello.test') {
-                apply plugin: 'cpp-library'
-            }
-        """
-        app.greeter.writeToProject(file("hello.test"))
-        app.main.writeToProject(file("app.test"))
-
-        expect:
-        succeeds ":app.test:assemble"
-
-        result.assertTasksExecuted(tasks(':hello.test').debug.allToLink, tasks(':app.test').debug.allToInstall, ":app.test:assemble")
-        executable("app.test/build/exe/main/debug/app.test").assertExists()
-        sharedLibrary("hello.test/build/lib/main/debug/hello.test").assertExists()
-        def installation = installation("app.test/build/install/main/debug")
-        installation.exec().out == app.expectedOutput
-        installation.assertIncludesLibraries("hello.test")
     }
 
     def "can compile and link against a library when specifying multiple target machines"() {
@@ -786,52 +731,6 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
         installation("app/build/install/main/debug").exec().out == app.withFeatureDisabled().expectedOutput
     }
 
-    def "can compile and link against a library with debug and release variants with 'dot' in project name"() {
-        settingsFile << "include 'app.test', 'hello.test'"
-        def app = new CppAppWithLibraryAndOptionalFeature()
-
-        given:
-        buildFile << """
-            project(':app.test') {
-                apply plugin: 'cpp-application'
-                dependencies {
-                    implementation project(':hello.test')
-                }
-                application.binaries.get { it.optimized }.configure {
-                    compileTask.get().macros(WITH_FEATURE: "true")
-                }
-            }
-            project(':hello.test') {
-                apply plugin: 'cpp-library'
-                library.binaries.get { it.optimized }.configure {
-                    compileTask.get().macros(WITH_FEATURE: "true")
-                }
-            }
-        """
-        app.greeterLib.writeToProject(file("hello.test"))
-        app.main.writeToProject(file("app.test"))
-
-        expect:
-        succeeds tasks(':app.test').release.assemble
-
-        result.assertTasksExecuted(tasks(':hello.test').release.allToLink, tasks(':app.test').release.allToInstall, tasks(':app.test').release.extract, tasks(':app.test').release.assemble)
-        executable("app.test/build/exe/main/release/app.test").assertExists()
-        executable("app.test/build/exe/main/release/app.test").assertHasStrippedDebugSymbolsFor(app.main.sourceFileNames)
-        sharedLibrary("hello.test/build/lib/main/release/hello.test").assertExists()
-        sharedLibrary("hello.test/build/lib/main/release/hello.test").assertHasDebugSymbolsFor(app.greeterLib.sourceFileNamesWithoutHeaders)
-        installation("app.test/build/install/main/release").exec().out == app.withFeatureEnabled().expectedOutput
-
-        succeeds tasks(':app.test').debug.assemble
-
-        result.assertTasksExecuted(tasks(':hello.test').debug.allToLink, tasks(':app.test').debug.allToInstall, tasks(':app.test').debug.assemble)
-
-        executable("app.test/build/exe/main/debug/app.test").assertExists()
-        executable("app.test/build/exe/main/debug/app.test").assertHasDebugSymbolsFor(app.main.sourceFileNames)
-        sharedLibrary("hello.test/build/lib/main/debug/hello.test").assertExists()
-        sharedLibrary("hello.test/build/lib/main/debug/hello.test").assertHasDebugSymbolsFor(app.greeterLib.sourceFileNamesWithoutHeaders)
-        installation("app.test/build/install/main/debug").exec().out == app.withFeatureDisabled().expectedOutput
-    }
-
     def "can compile and link against library with api and implementation dependencies"() {
         settingsFile << "include 'app', 'deck', 'card', 'shuffle'"
         def app = new CppAppWithLibrariesWithApiDependencies()
@@ -1038,7 +937,7 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
                     publicHeaders.from('include')
                 }
             }
-"""
+        """
         app.greeterLib.publicHeaders.writeToSourceDir(file("lib1/include"))
         app.greeterLib.privateHeaders.writeToProject(file("lib1"))
         app.greeterLib.sources.writeToProject(file("lib1"))
@@ -1089,7 +988,7 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
                     source.from '../Sources/logger.cpp'
                 }
             }
-"""
+        """
         app.main.writeToSourceDir(file("Sources"))
         app.greeterLib.sources.writeToSourceDir(file("Sources"))
         app.greeterLib.headers.writeToProject(file("greeter"))
@@ -1206,5 +1105,51 @@ class CppApplicationIntegrationTest extends AbstractCppIntegrationTest implement
 
         expect:
         succeeds "assemble"
+    }
+
+    def "can contain dot in project name for installed application"() {
+        def app = new CppAppWithLibrary()
+
+        given:
+        settingsFile << "include 'app.with.dot', 'lib.with.dot'"
+        buildFile << """
+            project(':app.with.dot') {
+                apply plugin: 'cpp-application'
+                application {
+                    dependencies {
+                        implementation project(':lib.with.dot')
+                    }
+                }
+            }
+            project(':lib.with.dot') {
+                apply plugin: 'cpp-library'
+            }
+        """
+        app.greeter.writeToProject(file("lib.with.dot"))
+        app.main.writeToProject(file("app.with.dot"))
+
+        and:
+        def projectName = "foo.bar"
+        settingsFile << "\nrootProject.name = '$projectName'"
+
+        expect:
+        succeeds ":app.with.dot:assemble"
+
+        result.assertTasksExecuted(tasks(':lib.with.dot').debug.allToLink, tasks(':app.with.dot').debug.allToInstall, ":app.with.dot:assemble")
+
+        def installation = installation("app.with.dot/build/install/main/debug")
+        installation.assertInstalled()
+        installation.exec().out == app.expectedOutput
+        installation.installDir.file("app.with.dot" + OperatingSystem.current().getScriptSuffix()).assertIsFile()
+        installation.libraryDir.listFiles().every {
+            it.file && it.name in ["liblib.with.dot" + OperatingSystem.current().sharedLibrarySuffix, "app.with.dot" + OperatingSystem.current().executableSuffix]
+        }
+        if (OperatingSystem.current().windows) {
+            file("app.with.dot/build/exe/main/debug/app.with.dot.exe").assertIsFile()
+            file("lib.with.dot/build/lib/main/debug/lib.with.dot.dll").assertIsFile()
+        } else {
+            file("app.with.dot/build/exe/main/debug/app.with.dot").assertIsFile()
+            file("lib.with.dot/build/lib/main/debug/liblib.with.dot" + OperatingSystem.current().sharedLibrarySuffix).assertIsFile()
+        }
     }
 }

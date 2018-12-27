@@ -109,6 +109,8 @@ public abstract class OperatingSystem {
 
     public abstract String getScriptName(String scriptPath);
 
+    public abstract String getScriptSuffix();
+
     public abstract String getExecutableName(String executablePath);
 
     public abstract String getExecutableSuffix();
@@ -203,6 +205,11 @@ public abstract class OperatingSystem {
         }
 
         @Override
+        public String getScriptSuffix() {
+            return ".bat";
+        }
+
+        @Override
         public String getExecutableSuffix() {
             return ".exe";
         }
@@ -271,6 +278,11 @@ public abstract class OperatingSystem {
         @Override
         public String getScriptName(String scriptPath) {
             return scriptPath;
+        }
+
+        @Override
+        public String getScriptSuffix() {
+            return "";
         }
 
         @Override

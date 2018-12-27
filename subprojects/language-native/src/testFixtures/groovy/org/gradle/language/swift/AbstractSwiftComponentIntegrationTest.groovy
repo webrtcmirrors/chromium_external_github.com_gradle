@@ -22,6 +22,7 @@ import org.gradle.nativeplatform.fixtures.RequiresInstalledToolChain
 import org.gradle.nativeplatform.fixtures.ToolChainRequirement
 import org.gradle.nativeplatform.fixtures.app.SourceElement
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+import org.gradle.test.fixtures.file.TestFile
 
 @RequiresInstalledToolChain(ToolChainRequirement.SWIFTC)
 abstract class AbstractSwiftComponentIntegrationTest extends AbstractNativeLanguageComponentIntegrationTest {
@@ -228,6 +229,45 @@ abstract class AbstractSwiftComponentIntegrationTest extends AbstractNativeLangu
         failure.assertHasCause("A target machine needs to be specified")
     }
 
+    def "can contain dot in project name"() {
+        given:
+        makeSingleProject()
+        componentUnderTest.writeToProject(testDirectory)
+
+        and:
+        def projectName = "foo.bar"
+        settingsFile << "rootProject.name = '$projectName'"
+
+        expect:
+        succeeds taskNameToAssembleDevelopmentBinary
+        result.assertTasksExecutedAndNotSkipped(tasksToAssembleDevelopmentBinary, ":assemble")
+
+        binaryBuildDir.file("main/debug").eachFileRecurse {
+            if (it.isFile()) {
+                assert it.name.contains("FooBar")
+            }
+        }
+    }
+
+    def "can contain dot in component base name"() {
+        given:
+        makeSingleProject()
+        componentUnderTest.writeToProject(testDirectory)
+
+        and:
+        def module = "foo.bar"
+        buildFile << """
+            ${componentUnderTestDsl} {
+                module = "$module"
+            }
+        """
+
+        expect:
+        fails taskNameToAssembleDevelopmentBinary
+        failure.assertHasDescription("Execution failed for task ':compileDebugSwift'.")
+        failure.assertHasErrorOutput("module name \"${module}\" is not a valid identifier")
+    }
+
     protected String getCurrentHostOperatingSystemFamilyDsl() {
         String osFamily = DefaultNativePlatform.getCurrentOperatingSystem().toFamilyName()
         if (osFamily == OperatingSystemFamily.MACOS) {
@@ -246,4 +286,6 @@ abstract class AbstractSwiftComponentIntegrationTest extends AbstractNativeLangu
     abstract List<String> getTasksToAssembleDevelopmentBinaryOfComponentUnderTest()
 
     abstract String getComponentName()
+
+    protected abstract TestFile getBinaryBuildDir()
 }

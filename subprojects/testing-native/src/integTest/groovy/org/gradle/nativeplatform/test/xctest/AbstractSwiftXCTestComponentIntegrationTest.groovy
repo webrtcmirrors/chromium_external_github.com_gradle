@@ -21,6 +21,7 @@ import org.gradle.language.swift.AbstractSwiftComponentIntegrationTest
 import org.gradle.nativeplatform.fixtures.app.Swift3XCTest
 import org.gradle.nativeplatform.fixtures.app.Swift4XCTest
 import org.gradle.nativeplatform.fixtures.app.XCTestSourceElement
+import org.gradle.test.fixtures.file.TestFile
 import org.junit.Assume
 
 abstract class AbstractSwiftXCTestComponentIntegrationTest extends AbstractSwiftComponentIntegrationTest {
@@ -78,5 +79,10 @@ abstract class AbstractSwiftXCTestComponentIntegrationTest extends AbstractSwift
     @Override
     String getComponentName() {
         return "test"
+    }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/exe")
     }
 }

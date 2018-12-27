@@ -23,6 +23,7 @@ import org.gradle.nativeplatform.fixtures.app.CppAppWithLibrariesWithApiDependen
 import org.gradle.nativeplatform.fixtures.app.CppGreeterWithOptionalFeature
 import org.gradle.nativeplatform.fixtures.app.CppLib
 import org.gradle.nativeplatform.fixtures.app.SourceElement
+import org.gradle.test.fixtures.file.TestFile
 import org.hamcrest.Matchers
 
 import static org.gradle.util.Matchers.containsText
@@ -49,6 +50,11 @@ class CppLibraryIntegrationTest extends AbstractCppIntegrationTest implements Cp
         buildFile << """
             apply plugin: 'cpp-library'
         """
+    }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/lib")
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.gradle.language.swift
 
 import org.gradle.nativeplatform.fixtures.app.SourceElement
 import org.gradle.nativeplatform.fixtures.app.SwiftLib
+import org.gradle.test.fixtures.file.TestFile
 
 class SwiftSharedLibraryLinkageIntegrationTest extends AbstractSwiftIntegrationTest {
     @Override
@@ -43,6 +44,11 @@ class SwiftSharedLibraryLinkageIntegrationTest extends AbstractSwiftIntegrationT
     @Override
     protected String getComponentUnderTestDsl() {
         return "library"
+    }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/lib")
     }
 
     def "can create shared library binary when explicitly request a shared linkage"() {

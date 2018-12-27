@@ -16,6 +16,7 @@
 
 package org.gradle.language.cpp
 
+
 import org.gradle.util.Matchers
 
 abstract class AbstractCppIntegrationTest extends AbstractCppComponentIntegrationTest {

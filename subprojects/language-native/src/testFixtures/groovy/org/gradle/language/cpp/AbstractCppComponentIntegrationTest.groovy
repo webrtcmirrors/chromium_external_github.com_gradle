@@ -20,6 +20,7 @@ import org.gradle.language.AbstractNativeLanguageComponentIntegrationTest
 import org.gradle.nativeplatform.MachineArchitecture
 import org.gradle.nativeplatform.fixtures.RequiresInstalledToolChain
 import org.gradle.nativeplatform.fixtures.ToolChainRequirement
+import org.gradle.test.fixtures.file.TestFile
 import org.gradle.util.GUtil
 
 abstract class AbstractCppComponentIntegrationTest extends AbstractNativeLanguageComponentIntegrationTest {
@@ -183,6 +184,50 @@ abstract class AbstractCppComponentIntegrationTest extends AbstractNativeLanguag
         succeeds taskNameToAssembleDevelopmentBinary
     }
 
+    def "can contain dot in project name"() {
+        given:
+        makeSingleProject()
+        componentUnderTest.writeToProject(testDirectory)
+
+        and:
+        def projectName = "foo.bar"
+        settingsFile << "rootProject.name = '$projectName'"
+
+        expect:
+        succeeds taskNameToAssembleDevelopmentBinary
+        result.assertTasksExecutedAndNotSkipped(tasksToAssembleDevelopmentBinary, ":assemble")
+
+        binaryBuildDir.file("main/debug").eachFileRecurse {
+            if (it.isFile()) {
+                assert it.name.contains(projectName)
+            }
+        }
+    }
+
+    def "can contain dot in component base name"() {
+        given:
+        makeSingleProject()
+        componentUnderTest.writeToProject(testDirectory)
+
+        and:
+        def baseName = "foo.bar"
+        buildFile << """
+            ${componentUnderTestDsl} {
+                baseName = "$baseName"
+            }
+        """
+
+        expect:
+        succeeds taskNameToAssembleDevelopmentBinary
+        result.assertTasksExecutedAndNotSkipped(tasksToAssembleDevelopmentBinary, ":assemble")
+
+        binaryBuildDir.file("main/debug").eachFileRecurse {
+            if (it.isFile()) {
+                assert it.name.contains(baseName)
+            }
+        }
+    }
+
     protected abstract List<String> getTasksToAssembleDevelopmentBinary(String variant = "")
 
     protected abstract String getTaskNameToAssembleDevelopmentBinaryWithArchitecture(String architecture)
@@ -201,4 +246,6 @@ abstract class AbstractCppComponentIntegrationTest extends AbstractNativeLanguag
             }
         """
     }
+
+    protected abstract TestFile getBinaryBuildDir()
 }

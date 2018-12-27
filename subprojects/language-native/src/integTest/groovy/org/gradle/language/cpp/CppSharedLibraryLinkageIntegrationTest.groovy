@@ -18,6 +18,7 @@ package org.gradle.language.cpp
 
 import org.gradle.nativeplatform.fixtures.app.CppLib
 import org.gradle.nativeplatform.fixtures.app.SourceElement
+import org.gradle.test.fixtures.file.TestFile
 
 class CppSharedLibraryLinkageIntegrationTest extends AbstractCppIntegrationTest {
 
@@ -46,6 +47,11 @@ class CppSharedLibraryLinkageIntegrationTest extends AbstractCppIntegrationTest 
     @Override
     protected SourceElement getComponentUnderTest() {
         return new CppLib()
+    }
+
+    @Override
+    protected TestFile getBinaryBuildDir() {
+        return file("build/lib")
     }
 
     def "can create shared library binary when only shared linkage is specified"() {

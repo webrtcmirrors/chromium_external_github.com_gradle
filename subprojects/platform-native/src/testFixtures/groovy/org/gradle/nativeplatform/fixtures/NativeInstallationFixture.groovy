@@ -76,14 +76,17 @@ class NativeInstallationFixture {
 
     private ArrayList<TestFile> getLibraryFiles() {
         installDir.assertIsDir()
-        def libDir = installDir.file("lib")
+        def libDir = libraryDir
         libDir.assertIsDir()
-        def libFiles
-        if (os.windows) {
-            libFiles = libDir.listFiles().findAll { it.file && !it.name.endsWith(".exe") }
-        } else {
-            libFiles = libDir.listFiles().findAll { it.file && it.name.contains(".") }
+        return libDir.listFiles().findAll { item -> item.file && [os.sharedLibrarySuffix, os.staticLibrarySuffix].any { item.name.endsWith(it) }
         }
-        libFiles
+    }
+
+    TestFile getInstallDir() {
+        return installDir
+    }
+
+    TestFile getLibraryDir() {
+        return installDir.file("lib")
     }
 }

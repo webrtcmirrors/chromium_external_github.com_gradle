@@ -78,6 +78,7 @@ class OperatingSystemTest extends Specification {
         def os = new OperatingSystem.Windows()
 
         expect:
+        os.scriptSuffix == ".bat"
         os.getScriptName("a.bat") == "a.bat"
         os.getScriptName("a.BAT") == "a.BAT"
         os.getScriptName("a") == "a.bat"
@@ -236,6 +237,7 @@ class OperatingSystemTest extends Specification {
         def os = new OperatingSystem.Unix()
 
         expect:
+        os.scriptSuffix == ""
         os.getScriptName("a.sh") == "a.sh"
         os.getScriptName("a") == "a"
     }
