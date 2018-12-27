@@ -14,27 +14,72 @@ public class Main {
     private static Map<String, String> gradleBinary = new HashMap<>();
 
     static {
-        gradleBinary.put("baseline",
+        gradleBinary.put("baseline1",
             projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000/bin/gradle");
-        gradleBinary.put("current",
+        gradleBinary.put("baseline2",
+            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-2/bin/gradle");
+        gradleBinary.put("current1",
             projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
+        gradleBinary.put("current2",
+            projectDirPath + "/subprojects/performance/build/integ test-2/bin/gradle");
+    }
+
+    private static class Experiment {
+        String version;
+        List<Long> results;
+
+        public Experiment(String version, List<Long> results) {
+            this.version = version;
+            this.results = results;
+        }
+
+        private double[] toDoubleArray() {
+            return results.stream().mapToDouble(Long::doubleValue).toArray();
+        }
+
+        private void printResult() {
+            System.out.println(version + ": " + results.stream().map(s -> s + " ms").collect(Collectors.joining(", ")));
+        }
+    }
+
+    private static class TwoExperiments {
+        Experiment version1;
+        Experiment version2;
+        double confidence;
+
+        public TwoExperiments(Experiment version1, Experiment version2) {
+            this.version1 = version1;
+            this.version2 = version2;
+            this.confidence = 1 - new MannWhitneyUTest().mannWhitneyUTest(version1.toDoubleArray(), version2.toDoubleArray());
+        }
+
+        public void printResultsAndConfidence() {
+            version1.printResult();
+            version2.printResult();
+            System.out.println(String.format("Confidence of %s and %s is %f", version1.version, version2.version, confidence));
+        }
     }
 
     public static void main(String[] args) {
-        List<Long> currentResults = runExperiment("current");
-        List<Long> baselineResults = runExperiment("baseline");
+        List<TwoExperiments> allResults = IntStream.range(0, Integer.parseInt(System.getProperty("retryCount"))).mapToObj(i -> runASetOfExperiments()).collect(Collectors.toList());
 
-        System.out.println("Current: " + currentResults.stream().map(s -> s + " ms").collect(Collectors.joining(", ")));
-        System.out.println("Baseline: " + baselineResults.stream().map(s -> s + " ms").collect(Collectors.joining(", ")));
-
-        System.out.println("Confidence: " + (1 - new MannWhitneyUTest().mannWhitneyUTest(toDoubleArray(currentResults), toDoubleArray(baselineResults))));
+        System.out.println("All results:");
+        allResults.forEach(TwoExperiments::printResultsAndConfidence);
     }
 
-    private static double[] toDoubleArray(List<Long> results) {
-        return results.stream().mapToDouble(Long::doubleValue).toArray();
+    private static TwoExperiments runASetOfExperiments() {
+        String[] versions = System.getProperty("expVersions").split(",");
+
+        Experiment version1 = runExperiment(versions[0]);
+        Experiment version2 = runExperiment(versions[1]);
+
+        TwoExperiments comparison = new TwoExperiments(version1, version2);
+        comparison.printResultsAndConfidence();
+        return comparison;
     }
 
-    private static List<Long> runExperiment(String version) {
+
+    private static Experiment runExperiment(String version) {
         initDirectory(getGradleUserHome(version));
         deleteDirectory(getExpProject(version));
 
@@ -42,13 +87,16 @@ public class Main {
             projectDirPath + "/subprojects/performance/build/largeJavaMultiProjectKotlinDsl",
             getExpProject(version).getAbsolutePath());
 
-        List<String> args = getExpArgs(version);
+        List<String> args = getExpArgs(version, "help");
         doWarmUp(getExpProject(version), args);
-        return doRun(getExpProject(version), args);
+        List<Long> results = doRun(getExpProject(version), args);
+
+        run(getExpProject(version), getExpArgs(version, "--stop"));
+        return new Experiment(version, results);
     }
 
     private static List<Long> doRun(File workdingDir, List<String> args) {
-        int runCount = Integer.parseInt(System.getProperty("runExperiment"));
+        int runCount = Integer.parseInt(System.getProperty("runCount"));
         return IntStream.range(0, runCount).mapToObj(i -> measureOnce(workdingDir, args)).collect(Collectors.toList());
     }
 
@@ -58,14 +106,14 @@ public class Main {
         return System.currentTimeMillis() - t0;
     }
 
-    private static List<String> getExpArgs(String version) {
+    private static List<String> getExpArgs(String version, String task) {
         return Arrays.asList(
             gradleBinary.get(version),
-            "help",
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m"
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
+            task
         );
     }
 
