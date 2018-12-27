@@ -20,6 +20,8 @@ import org.gradle.internal.os.OperatingSystem
 import org.gradle.test.fixtures.file.ExecOutput
 import org.gradle.test.fixtures.file.TestFile
 
+import static org.gradle.internal.FileUtils.removeExtension
+
 class NativeInstallationFixture {
     private final TestFile installDir
     private final OperatingSystem os
@@ -42,6 +44,14 @@ class NativeInstallationFixture {
         }
     }
 
+    private String scriptBaseName() {
+        String scriptName = scriptFile().name
+        if (os.windows) {
+            return removeExtension(scriptName)
+        }
+        return scriptName
+    }
+
     NativeInstallationFixture assertInstalled() {
         installDir.assertIsDir()
         final script = scriptFile()
@@ -49,7 +59,7 @@ class NativeInstallationFixture {
 
         def libDir = installDir.file("lib")
         libDir.assertIsDir()
-        libDir.file(os.getExecutableName(script.name)).assertIsFile()
+        libDir.file(os.getExecutableName(scriptBaseName())).assertIsFile()
         this
     }
 

@@ -93,14 +93,14 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.executableSuffix == ".exe"
-        os.getExecutableName("a.exe") == "a.exe"
-        os.getExecutableName("a.EXE") == "a.EXE"
+        os.getExecutableName("a.exe") == "a.exe.exe"
+        os.getExecutableName("a.EXE") == "a.EXE.exe"
         os.getExecutableName("a") == "a.exe"
-        os.getExecutableName("a.bat") == "a.exe"
+        os.getExecutableName("a.bat") == "a.bat.exe"
         os.getExecutableName("a.b/c") == "a.b/c.exe"
         os.getExecutableName("a.b\\c") == "a.b\\c.exe"
-        os.getExecutableName("any/path/to/filesystem/base.name") == "any/path/to/filesystem/base.name.exe"
-        os.getExecutableName("any/path/to/filesystem/base-name") == "any/path/to/filesystem/base-name.exe"
+        os.getExecutableName("a/b/c.d") == "a/b/c.d.exe"
+        os.getExecutableName("a/b/c-d") == "a/b/c-d.exe"
     }
 
     def "windows transforms shared library names"() {
