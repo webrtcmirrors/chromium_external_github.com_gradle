@@ -1,0 +1,194 @@
+
+            import groovy.transform.CompileStatic
+            import groovy.transform.CompileDynamic
+            
+            apply plugin: MirrorPlugin
+
+            @CompileStatic
+            class MirrorPlugin implements Plugin<Gradle> {
+                void apply(Gradle gradle) {
+                    gradle.allprojects { Project project ->
+                        project.buildscript.configurations["classpath"].incoming.beforeResolve {
+                            withMirrors(project.buildscript.repositories)
+                        }
+                        project.afterEvaluate {
+                            withMirrors(project.repositories)
+                        }
+                    }
+                    maybeConfigurePluginManagement(gradle)
+                }
+
+                @CompileDynamic
+                void maybeConfigurePluginManagement(Gradle gradle) {
+                    if (gradle.gradleVersion >= "4.4") {
+                        gradle.settingsEvaluated { Settings settings ->
+                            withMirrors(settings.pluginManagement.repositories)
+                        }
+                    }
+                }
+                
+                void withMirrors(RepositoryHandler repos) {
+                    repos.all { repo ->
+                        if (repo instanceof MavenArtifactRepository) {
+                            mirror(repo)
+                        } else if (repo instanceof IvyArtifactRepository) {
+                            mirror(repo)
+                        }
+                    }
+                }
+    
+                void mirror(MavenArtifactRepository repo) {
+                    
+                if (normalizeUrl(repo.url) == normalizeUrl('https://jcenter.bintray.com/')) {
+                    repo.url = new java.net.URI('https://jcenter.bintray.com/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.maven.apache.org/maven2/')) {
+                    repo.url = new java.net.URI('https://repo.maven.apache.org/maven2/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://dl.google.com/dl/android/maven2/')) {
+                    repo.url = new java.net.URI('https://dl.google.com/dl/android/maven2/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.lightbend.com/lightbend/maven-releases')) {
+                    repo.url = new java.net.URI('https://repo.lightbend.com/lightbend/maven-releases')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.lightbend.com/lightbend/ivy-releases')) {
+                    repo.url = new java.net.URI('https://repo.lightbend.com/lightbend/ivy-releases')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://maven.springframework.org/release')) {
+                    repo.url = new java.net.URI('https://maven.springframework.org/release')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.spring.io/snapshot/')) {
+                    repo.url = new java.net.URI('https://repo.spring.io/snapshot/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://maven.restlet.com')) {
+                    repo.url = new java.net.URI('https://maven.restlet.com')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/repo')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/repo')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repository.jboss.org/maven2/')) {
+                    repo.url = new java.net.URI('https://repository.jboss.org/maven2/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://plugins.gradle.org/m2')) {
+                    repo.url = new java.net.URI('https://plugins.gradle.org/m2')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/libs-releases')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/libs-releases')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/libs-milestones')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/libs-milestones')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/libs-snapshots')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/libs-snapshots')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/javascript-public')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/javascript-public')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://kotlin.bintray.com/kotlinx/')) {
+                    repo.url = new java.net.URI('https://kotlin.bintray.com/kotlinx/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://dl.bintray.com/kotlin/kotlin-eap/')) {
+                    repo.url = new java.net.URI('https://dl.bintray.com/kotlin/kotlin-eap/')
+                }
+            
+                }
+
+                void mirror(IvyArtifactRepository repo) {
+                    
+                if (normalizeUrl(repo.url) == normalizeUrl('https://jcenter.bintray.com/')) {
+                    repo.url = new java.net.URI('https://jcenter.bintray.com/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.maven.apache.org/maven2/')) {
+                    repo.url = new java.net.URI('https://repo.maven.apache.org/maven2/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://dl.google.com/dl/android/maven2/')) {
+                    repo.url = new java.net.URI('https://dl.google.com/dl/android/maven2/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.lightbend.com/lightbend/maven-releases')) {
+                    repo.url = new java.net.URI('https://repo.lightbend.com/lightbend/maven-releases')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.lightbend.com/lightbend/ivy-releases')) {
+                    repo.url = new java.net.URI('https://repo.lightbend.com/lightbend/ivy-releases')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://maven.springframework.org/release')) {
+                    repo.url = new java.net.URI('https://maven.springframework.org/release')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.spring.io/snapshot/')) {
+                    repo.url = new java.net.URI('https://repo.spring.io/snapshot/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://maven.restlet.com')) {
+                    repo.url = new java.net.URI('https://maven.restlet.com')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/repo')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/repo')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repository.jboss.org/maven2/')) {
+                    repo.url = new java.net.URI('https://repository.jboss.org/maven2/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://plugins.gradle.org/m2')) {
+                    repo.url = new java.net.URI('https://plugins.gradle.org/m2')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/libs-releases')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/libs-releases')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/libs-milestones')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/libs-milestones')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/libs-snapshots')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/libs-snapshots')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://repo.gradle.org/gradle/javascript-public')) {
+                    repo.url = new java.net.URI('https://repo.gradle.org/gradle/javascript-public')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://kotlin.bintray.com/kotlinx/')) {
+                    repo.url = new java.net.URI('https://kotlin.bintray.com/kotlinx/')
+                }
+            
+                if (normalizeUrl(repo.url) == normalizeUrl('https://dl.bintray.com/kotlin/kotlin-eap/')) {
+                    repo.url = new java.net.URI('https://dl.bintray.com/kotlin/kotlin-eap/')
+                }
+            
+                }
+                
+                // We see them as equal:
+                // https://repo.maven.apache.org/maven2/ and http://repo.maven.apache.org/maven2
+                String normalizeUrl(Object url) {
+                    String urlStr = url.toString()
+                    if(urlStr.startsWith('https')) {
+                        urlStr = 'http' + urlStr[5..-1]
+                    }
+                    return urlStr.endsWith("/") ? urlStr : urlStr + "/"
+                }
+            }
+        

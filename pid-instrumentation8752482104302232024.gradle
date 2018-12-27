@@ -1,0 +1,9 @@
+
+            def e
+            if (gradleVersion == '2.0') {
+              e = services.get(org.gradle.internal.nativeplatform.ProcessEnvironment)
+            } else {
+              e = services.get(org.gradle.internal.nativeintegration.ProcessEnvironment)
+            }
+            new File(new URI('file:/tmp/build-under-test6218110039819417813.pid')).text = e.pid
+        
