@@ -65,14 +65,7 @@ public class Main {
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
-            "--init-script",
-            projectDirPath + "/mirrors2969901031757590387.gradle",
-            "-I",
-            projectDirPath + "/mirrors879648600275838071.gradle",
-            "-Dorg.gradle.internal.plugins.portal.url.override=https://plugins.gradle.org/m2",
-            "--init-script",
-            projectDirPath + "/pid-instrumentation8752482104302232024.gradle"
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m"
         );
     }
 
