@@ -255,6 +255,7 @@ public class Main {
         Map<String, String> env = new HashMap<>();
         env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
 
+        mutateProject(version);
         IntStream.range(0, warmups).forEach(i -> run(workingDir, env, args));
     }
 
