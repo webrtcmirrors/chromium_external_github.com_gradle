@@ -79,6 +79,10 @@ public class Main {
         TwoExperiments comparison = "oneByOne".equals(strategy) ? runOneByOne() : runSetBySet();
 
         comparison.printResultsAndConfidence();
+
+        if (comparison.confidence > 0.99) {
+            throw new IllegalStateException("We need to stop.");
+        }
         return comparison;
     }
 
