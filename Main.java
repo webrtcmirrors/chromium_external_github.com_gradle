@@ -2,6 +2,7 @@ import org.apache.commons.math3.stat.inference.MannWhitneyUTest;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,6 +17,8 @@ public class Main {
     private static Map<String, String> gradleBinary = new HashMap<>();
     private static String jcmdPath = System.getenv("JAVA_HOME") + "/bin/jcmd";
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
+    private static String template = System.getProperty("template");
+    private static Map<String, ProjectMutator> mutators = new HashMap<>();
 
     static {
         gradleBinary.put("baseline1",
@@ -26,6 +29,8 @@ public class Main {
             projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
         gradleBinary.put("current2",
             projectDirPath + "/subprojects/performance/build/integ test-2/bin/gradle");
+
+        mutators.put("largeMonolithicJavaProject", new NonApiChangeMutator());
     }
 
     private static class Experiment {
@@ -127,7 +132,7 @@ public class Main {
         deleteDirectory(getExpProject(version));
 
         run(projectDir, "cp", "-r",
-            projectDirPath + "/subprojects/performance/build/largeJavaMultiProjectKotlinDsl",
+            projectDirPath + "/subprojects/performance/build/" + template,
             getExpProject(version).getAbsolutePath());
     }
 
@@ -156,6 +161,14 @@ public class Main {
         }
     }
 
+    private static void writeFile(File file, String text) {
+        try {
+            Files.write(file.toPath(), text.getBytes(), StandardOpenOption.WRITE);
+        } catch (Exception e) {
+            handleException(e);
+        }
+    }
+
     private static List<Long> doRun(String version, List<String> args) {
         int runCount = Integer.parseInt(System.getProperty("runCount"));
         return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args)).collect(Collectors.toList());
@@ -169,6 +182,8 @@ public class Main {
             run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
         }
 
+        mutateProject(version);
+
         long t0 = System.currentTimeMillis();
         run(workingDir, args);
         long result = System.currentTimeMillis() - t0;
@@ -178,6 +193,13 @@ public class Main {
         }
 
         return result;
+    }
+
+    private static void mutateProject(String version) {
+        ProjectMutator mutator = mutators.get(template);
+        if (mutator != null) {
+            mutator.mutate(getExpProject(version));
+        }
     }
 
     private static boolean jfrEnabled() {
@@ -279,6 +301,20 @@ public class Main {
     private static void assertTrue(boolean value) {
         if (!value) {
             throw new IllegalStateException();
+        }
+    }
+
+    private interface ProjectMutator {
+        void mutate(File expProject);
+    }
+
+    private static class NonApiChangeMutator implements ProjectMutator {
+        @Override
+        public void mutate(File expProject) {
+            File javaFile = new File(expProject, "src/main/java/org/gradle/test/performance/largemonolithicjavaproject/p0/Production0.java");
+            String text = readFile(javaFile);
+            text = text.replace("property9 = value;", "property9 = value;System.out.println(" + System.nanoTime() + ");");
+            writeFile(javaFile, text);
         }
     }
 }
