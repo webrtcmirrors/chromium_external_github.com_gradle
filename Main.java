@@ -162,7 +162,7 @@ public class Main {
     }
 
     private static long measureOnce(int index, String version, List<String> args) {
-        String pid = readFile(getPidFile(version));
+        String pid = jfrEnabled() ? readFile(getPidFile(version)) : null;
         File workingDir = getExpProject(version);
 
         if (jfrEnabled()) {
