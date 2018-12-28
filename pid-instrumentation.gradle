@@ -5,5 +5,5 @@
             } else {
               e = services.get(org.gradle.internal.nativeintegration.ProcessEnvironment)
             }
-            new File(new URI('file:/tmp/build-under-test6218110039819417813.pid')).text = e.pid
+            new File(System.getProperty("pidFilePath")).text = e.pid
         

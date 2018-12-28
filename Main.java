@@ -1,10 +1,11 @@
 import org.apache.commons.math3.stat.inference.MannWhitneyUTest;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -13,6 +14,8 @@ public class Main {
     private static String projectDirPath = "/home/tcagent1/agent/work/668602365d1521fc";
     private static File projectDir = new File(projectDirPath);
     private static Map<String, String> gradleBinary = new HashMap<>();
+    private static String jcmdPath = System.getProperty("java.home") + "/bin/jcmd";
+    private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
 
     static {
         gradleBinary.put("baseline1",
@@ -64,8 +67,10 @@ public class Main {
     public static void main(String[] args) {
         List<TwoExperiments> allResults = IntStream.range(0, Integer.parseInt(System.getProperty("retryCount"))).mapToObj(i -> runASetOfExperiments()).collect(Collectors.toList());
 
-        System.out.println("All results:");
-        allResults.forEach(TwoExperiments::printResultsAndConfidence);
+        if (allResults.size() > 1) {
+            System.out.println("All results:");
+            allResults.forEach(TwoExperiments::printResultsAndConfidence);
+        }
     }
 
     private static TwoExperiments runASetOfExperiments() {
@@ -104,8 +109,8 @@ public class Main {
         List<Long> version2Results = new ArrayList<>();
 
         for (int i = 0; i < Integer.parseInt(System.getProperty("runCount")); ++i) {
-            version1Results.add(measureOnce(getExpProject(version1), getExpArgs(version1, "help")));
-            version2Results.add(measureOnce(getExpProject(version2), getExpArgs(version2, "help")));
+            version1Results.add(measureOnce(i, version1, getExpArgs(version1, "help")));
+            version2Results.add(measureOnce(i, version2, getExpArgs(version2, "help")));
         }
         stopDaemon(version1);
         stopDaemon(version2);
@@ -129,23 +134,42 @@ public class Main {
     private static Experiment runExperiment(String version) {
         prepareForExperiment(version);
 
-        List<String> args = getExpArgs(version, "help");
+        List<String> args = getWarmupExpArgs(version, "help");
         doWarmUp(getExpProject(version), args);
-        List<Long> results = doRun(getExpProject(version), args);
+
+        List<Long> results = doRun(version, args);
 
         stopDaemon(version);
         return new Experiment(version, results);
     }
 
-    private static List<Long> doRun(File workdingDir, List<String> args) {
-        int runCount = Integer.parseInt(System.getProperty("runCount"));
-        return IntStream.range(0, runCount).mapToObj(i -> measureOnce(workdingDir, args)).collect(Collectors.toList());
+    private static String readFile(File file) {
+        try {
+            return new String(Files.readAllBytes(file.toPath()));
+        } catch (Exception e) {
+            handleException(e);
+            return null;
+        }
     }
 
-    private static long measureOnce(File workingDir, List<String> args) {
+    private static List<Long> doRun(String version, List<String> args) {
+        int runCount = Integer.parseInt(System.getProperty("runCount"));
+        return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args)).collect(Collectors.toList());
+    }
+
+    private static long measureOnce(int index, String version, List<String> args) {
+        String pid = readFile(getPidFile(version));
+        File workingDir = getExpProject(version);
+
+        run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
+
         long t0 = System.currentTimeMillis();
         run(workingDir, args);
-        return System.currentTimeMillis() - t0;
+        long result = System.currentTimeMillis() - t0;
+
+        run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=iteration" + index);
+
+        return result;
     }
 
     private static List<String> getExpArgs(String version, String task) {
@@ -154,9 +178,21 @@ public class Main {
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints",
             task
         );
+    }
+
+    private static List<String> getWarmupExpArgs(String version, String task) {
+        List<String> args = new ArrayList<>(getExpArgs(version, task));
+        args.add("--init-script");
+        args.add(projectDirPath + "/pid-instrumentation.gradle");
+        args.add("-DpidFilePath=" + getPidFile(version).getAbsolutePath());
+        return args;
+    }
+
+    private static File getPidFile(String version) {
+        return new File(getExpProject(version), "pid");
     }
 
     private static File getGradleUserHome(String version) {
