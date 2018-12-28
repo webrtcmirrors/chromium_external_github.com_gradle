@@ -137,7 +137,7 @@ public class Main {
         List<String> args = getWarmupExpArgs(version, "help");
         doWarmUp(version, args);
 
-        List<Long> results = doRun(version, args);
+        List<Long> results = doRun(version, getExpArgs(version, "help"));
 
         stopDaemon(version);
         return new Experiment(version, results);
