@@ -14,7 +14,7 @@ public class Main {
     private static String projectDirPath = "/home/tcagent1/agent/work/668602365d1521fc";
     private static File projectDir = new File(projectDirPath);
     private static Map<String, String> gradleBinary = new HashMap<>();
-    private static String jcmdPath = System.getProperty("java.home") + "/bin/jcmd";
+    private static String jcmdPath = System.getenv("JAVA_HOME") + "/bin/jcmd";
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
 
     static {
