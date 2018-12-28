@@ -102,8 +102,8 @@ public class Main {
         prepareForExperiment(version1);
         prepareForExperiment(version2);
 
-        doWarmUp(getExpProject(version1), getExpArgs(version1, "help"));
-        doWarmUp(getExpProject(version2), getExpArgs(version2, "help"));
+        doWarmUp(version1, getExpArgs(version1, "help"));
+        doWarmUp(version2, getExpArgs(version2, "help"));
 
         List<Long> version1Results = new ArrayList<>();
         List<Long> version2Results = new ArrayList<>();
@@ -135,7 +135,7 @@ public class Main {
         prepareForExperiment(version);
 
         List<String> args = getWarmupExpArgs(version, "help");
-        doWarmUp(getExpProject(version), args);
+        doWarmUp(version, args);
 
         List<Long> results = doRun(version, args);
 
@@ -187,7 +187,6 @@ public class Main {
         List<String> args = new ArrayList<>(getExpArgs(version, task));
         args.add("--init-script");
         args.add(projectDirPath + "/pid-instrumentation.gradle");
-        args.add("-DpidFilePath=" + getPidFile(version).getAbsolutePath());
         return args;
     }
 
@@ -203,9 +202,14 @@ public class Main {
         return new File(projectDirPath, version + "ExpProject");
     }
 
-    private static void doWarmUp(File workingDir, List<String> args) {
+    private static void doWarmUp(String version, List<String> args) {
+        File workingDir = getExpProject(version);
         int warmups = Integer.parseInt(System.getProperty("warmUp"));
-        IntStream.range(0, warmups).forEach(i -> run(workingDir, args));
+
+        Map<String, String> env = new HashMap<>();
+        env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
+
+        IntStream.range(0, warmups).forEach(i -> run(workingDir, env, args));
     }
 
     private static void deleteDirectory(File dir) {
@@ -228,8 +232,16 @@ public class Main {
     }
 
     private static void run(File workingDir, List<String> args) {
+        run(workingDir, null, args);
+    }
+
+    private static void run(File workingDir, Map<String, String> envs, List<String> args) {
         try {
-            int code = new ProcessBuilder(args).directory(workingDir).inheritIO().start().waitFor();
+            ProcessBuilder pb = new ProcessBuilder(args).directory(workingDir).inheritIO();
+            if (envs != null) {
+                pb.environment().putAll(envs);
+            }
+            int code = pb.start().waitFor();
             assertTrue(code == 0);
         } catch (Exception e) {
             handleException(e);
@@ -237,12 +249,7 @@ public class Main {
     }
 
     private static void run(File workingDir, String... args) {
-        try {
-            int code = new ProcessBuilder(args).directory(workingDir).inheritIO().start().waitFor();
-            assertTrue(code == 0);
-        } catch (Exception e) {
-            handleException(e);
-        }
+        run(workingDir, Arrays.asList(args));
     }
 
     private static void assertTrue(boolean value) {
