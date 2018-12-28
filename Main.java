@@ -111,15 +111,15 @@ public class Main {
         prepareForExperiment(version1);
         prepareForExperiment(version2);
 
-        doWarmUp(version1, getExpArgs(version1, "help"));
-        doWarmUp(version2, getExpArgs(version2, "help"));
+        doWarmUp(version1, getExpArgs(version1, "assemble"));
+        doWarmUp(version2, getExpArgs(version2, "assemble"));
 
         List<Long> version1Results = new ArrayList<>();
         List<Long> version2Results = new ArrayList<>();
 
         for (int i = 0; i < Integer.parseInt(System.getProperty("runCount")); ++i) {
-            version1Results.add(measureOnce(i, version1, getExpArgs(version1, "help")));
-            version2Results.add(measureOnce(i, version2, getExpArgs(version2, "help")));
+            version1Results.add(measureOnce(i, version1, getExpArgs(version1, "assemble")));
+            version2Results.add(measureOnce(i, version2, getExpArgs(version2, "assemble")));
         }
         stopDaemon(version1);
         stopDaemon(version2);
@@ -143,10 +143,10 @@ public class Main {
     private static Experiment runExperiment(String version) {
         prepareForExperiment(version);
 
-        List<String> args = getWarmupExpArgs(version, "help");
+        List<String> args = getWarmupExpArgs(version, "assemble");
         doWarmUp(version, args);
 
-        List<Long> results = doRun(version, getExpArgs(version, "help"));
+        List<Long> results = doRun(version, getExpArgs(version, "assemble"));
 
         stopDaemon(version);
         return new Experiment(version, results);
