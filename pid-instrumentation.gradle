@@ -5,5 +5,5 @@ if (gradleVersion == '2.0') {
 } else {
     e = services.get(org.gradle.internal.nativeintegration.ProcessEnvironment)
 }
-new File(System.getProperty("pidFilePath")).text = e.pid
+new File(System.getenv("PID_FILE_PATH")).text = e.pid
         
