@@ -313,7 +313,7 @@ public class Main {
         public void mutate(File expProject) {
             File javaFile = new File(expProject, "src/main/java/org/gradle/test/performance/largemonolithicjavaproject/p0/Production0.java");
             String text = readFile(javaFile);
-            text = text.replace("property9 = value;", "property9 = value;System.out.println(" + System.nanoTime() + ");");
+            text = text.replace("property9 = value;", "property9 = value;System.out.println(" + System.nanoTime() + "L);");
             writeFile(javaFile, text);
         }
     }
