@@ -167,9 +167,13 @@ public class Main {
         run(workingDir, args);
         long result = System.currentTimeMillis() - t0;
 
-        run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=iteration" + index);
+        run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
 
         return result;
+    }
+
+    private static String getJfrPath(String version, int iteration) {
+        return new File(getExpProject(version), version + "_" + iteration + ".jfr").getAbsolutePath();
     }
 
     private static List<String> getExpArgs(String version, String task) {
