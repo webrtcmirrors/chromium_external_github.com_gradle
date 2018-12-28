@@ -165,15 +165,23 @@ public class Main {
         String pid = readFile(getPidFile(version));
         File workingDir = getExpProject(version);
 
-        run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
+        if (jfrEnabled()) {
+            run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
+        }
 
         long t0 = System.currentTimeMillis();
         run(workingDir, args);
         long result = System.currentTimeMillis() - t0;
 
-        run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
+        if (jfrEnabled()) {
+            run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
+        }
 
         return result;
+    }
+
+    private static boolean jfrEnabled() {
+        return Boolean.parseBoolean(System.getProperty("jfrEnabled"));
     }
 
     private static String getJfrPath(String version, int iteration) {
@@ -181,21 +189,29 @@ public class Main {
     }
 
     private static List<String> getExpArgs(String version, String task) {
+        String jvmArgs = jfrEnabled()
+            ? "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints"
+            : "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m";
+
         return Arrays.asList(
             gradleBinary.get(version),
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints",
+            jvmArgs,
             task
         );
     }
 
     private static List<String> getWarmupExpArgs(String version, String task) {
-        List<String> args = new ArrayList<>(getExpArgs(version, task));
-        args.add("--init-script");
-        args.add(projectDirPath + "/pid-instrumentation.gradle");
-        return args;
+        if (jfrEnabled()) {
+            List<String> args = new ArrayList<>(getExpArgs(version, task));
+            args.add("--init-script");
+            args.add(projectDirPath + "/pid-instrumentation.gradle");
+            return args;
+        } else {
+            return getExpArgs(version, task);
+        }
     }
 
     private static File getPidFile(String version) {
