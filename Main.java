@@ -209,7 +209,7 @@ public class Main {
             run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
         }
 
-        return result;
+        return Long.parseLong(readFile(new File(getExpProject(version), "cost")));
     }
 
     private static void mutateProject(String version) {

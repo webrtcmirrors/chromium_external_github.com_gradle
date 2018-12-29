@@ -17,6 +17,7 @@
 package org.gradle.api.internal.project;
 
 import com.google.common.collect.Maps;
+import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
 import groovy.lang.Closure;
 import groovy.lang.MissingPropertyException;
@@ -123,6 +124,7 @@ import org.gradle.util.Path;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -259,52 +261,62 @@ public class DefaultProject extends AbstractPluginAware implements ProjectIntern
 
     @SuppressWarnings("unused")
     static class BasicServicesRules extends RuleSource {
-        @Hidden @Model
+        @Hidden
+        @Model
         ObjectFactory objectFactory(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(ObjectFactory.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         NamedEntityInstantiator<Task> taskFactory(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(TaskInstantiator.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         CollectionCallbackActionDecorator collectionCallbackActionDecorator(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(CollectionCallbackActionDecorator.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         Instantiator instantiator(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(Instantiator.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         ModelSchemaStore schemaStore(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(ModelSchemaStore.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         ManagedProxyFactory proxyFactory(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(ManagedProxyFactory.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         StructBindingsStore structBindingsStore(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(StructBindingsStore.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         NodeInitializerRegistry nodeInitializerRegistry(ModelSchemaStore schemaStore, StructBindingsStore structBindingsStore) {
             return new DefaultNodeInitializerRegistry(schemaStore, structBindingsStore);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         TypeConverter typeConverter(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(TypeConverter.class);
         }
 
-        @Hidden @Model
+        @Hidden
+        @Model
         FileOperations fileOperations(ServiceRegistry serviceRegistry) {
             return serviceRegistry.get(FileOperations.class);
         }
@@ -966,7 +978,13 @@ public class DefaultProject extends AbstractPluginAware implements ProjectIntern
     @Override
     public DependencyHandler getDependencies() {
         if (dependencyHandler == null) {
+            long t0 = System.nanoTime();
             dependencyHandler = services.get(DependencyHandler.class);
+            try {
+                Files.write(("" + (System.nanoTime() - t0)).getBytes(), new File(getProjectDir(), "cost"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
         return dependencyHandler;
     }
