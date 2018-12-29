@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -52,19 +53,20 @@ public class Main {
 
     private static class Experiment {
         String version;
-        List<Long> results;
+        List<OneExperimentResult> results;
 
-        public Experiment(String version, List<Long> results) {
+        public Experiment(String version, List<OneExperimentResult> results) {
             this.version = version;
             this.results = results;
         }
 
         private double[] toDoubleArray() {
-            return results.stream().mapToDouble(Long::doubleValue).toArray();
+            return results.stream().map(OneExperimentResult::getRunTime).mapToDouble(Long::doubleValue).toArray();
         }
 
         private void printResult() {
-            System.out.println(version + ": " + results.stream().map(s -> s + " ms").collect(Collectors.joining(", ")));
+            System.out.println(version + ": " + results.stream().map(s -> s.runTime + " ms").collect(Collectors.joining(", ")));
+            System.out.println(version + ": " + results.stream().map(s -> s.serviceTime + " ns").collect(Collectors.joining(", ")));
         }
     }
 
@@ -118,30 +120,31 @@ public class Main {
     }
 
     private static TwoExperiments runOneByOne() {
-        String[] versions = System.getProperty("expVersions").split(",");
-
-        String version1 = versions[0];
-        String version2 = versions[1];
-
-        assertTrue(!version1.equals(version2));
-
-        prepareForExperiment(version1);
-        prepareForExperiment(version2);
-
-        doWarmUp(version1, getExpArgs(version1, task));
-        doWarmUp(version2, getExpArgs(version2, task));
-
-        List<Long> version1Results = new ArrayList<>();
-        List<Long> version2Results = new ArrayList<>();
-
-        for (int i = 0; i < Integer.parseInt(System.getProperty("runCount")); ++i) {
-            version1Results.add(measureOnce(i, version1, getExpArgs(version1, task)));
-            version2Results.add(measureOnce(i, version2, getExpArgs(version2, task)));
-        }
-        stopDaemon(version1);
-        stopDaemon(version2);
-
-        return new TwoExperiments(new Experiment(version1, version1Results), new Experiment(version2, version2Results));
+        return null;
+//        String[] versions = System.getProperty("expVersions").split(",");
+//
+//        String version1 = versions[0];
+//        String version2 = versions[1];
+//
+//        assertTrue(!version1.equals(version2));
+//
+//        prepareForExperiment(version1);
+//        prepareForExperiment(version2);
+//
+//        doWarmUp(version1, getExpArgs(version1, task));
+//        doWarmUp(version2, getExpArgs(version2, task));
+//
+//        List<Long> version1Results = new ArrayList<>();
+//        List<Long> version2Results = new ArrayList<>();
+//
+//        for (int i = 0; i < Integer.parseInt(System.getProperty("runCount")); ++i) {
+//            version1Results.add(measureOnce(i, version1, getExpArgs(version1, task)));
+//            version2Results.add(measureOnce(i, version2, getExpArgs(version2, task)));
+//        }
+//        stopDaemon(version1);
+//        stopDaemon(version2);
+//
+//        return new TwoExperiments(new Experiment(version1, version1Results), new Experiment(version2, version2Results));
     }
 
     private static void prepareForExperiment(String version) {
@@ -163,7 +166,7 @@ public class Main {
         List<String> args = getWarmupExpArgs(version, task);
         doWarmUp(version, args);
 
-        List<Long> results = doRun(version, getExpArgs(version, task));
+        List<OneExperimentResult> results = doRun(version, getExpArgs(version, task));
 
         stopDaemon(version);
         return new Experiment(version, results);
@@ -186,9 +189,35 @@ public class Main {
         }
     }
 
-    private static List<Long> doRun(String version, List<String> args) {
+    private static List<OneExperimentResult> doRun(String version, List<String> args) {
         int runCount = Integer.parseInt(System.getProperty("runCount"));
-        return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args)).collect(Collectors.toList());
+        List<OneExperimentResult> ret = new ArrayList<>();
+        for(int i=0;i<runCount;i++) {
+            long lastCost = Long.parseLong(readFile(new File(getExpProject(version), "cost")));
+            long runTime = measureOnce(i, version, args);
+            long currentCost = Long.parseLong(readFile(new File(getExpProject(version), "cost")));
+
+            ret.add(new OneExperimentResult(runTime, currentCost - lastCost));
+        }
+        return ret;
+    }
+
+    private static class OneExperimentResult {
+        private long runTime;
+        private long serviceTime;
+
+        private OneExperimentResult(long runTime, long serviceTime) {
+            this.runTime = runTime;
+            this.serviceTime = serviceTime;
+        }
+
+        private long getRunTime() {
+            return runTime;
+        }
+
+        private long getServiceTime() {
+            return serviceTime;
+        }
     }
 
     private static long measureOnce(int index, String version, List<String> args) {
@@ -209,7 +238,7 @@ public class Main {
             run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
         }
 
-        return Long.parseLong(readFile(new File(getExpProject(version), "cost")));
+        return result;
     }
 
     private static void mutateProject(String version) {
