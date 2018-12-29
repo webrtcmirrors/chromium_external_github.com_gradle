@@ -40,6 +40,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -69,6 +70,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>Service registries are arranged in a hierarchy. If a service of a given type cannot be located, the registry uses its parent registry, if any, to locate the service.</p>
  */
 public class DefaultServiceRegistry implements ServiceRegistry, Closeable {
+    public static final AtomicLong COUNTER = new AtomicLong(0L);
     private enum State {INIT, STARTED, CLOSED};
     private final static ServiceRegistry[] NO_PARENTS = new ServiceRegistry[0];
     private final static Service[] NO_DEPENDENTS = new Service[0];
@@ -273,7 +275,10 @@ public class DefaultServiceRegistry implements ServiceRegistry, Closeable {
     }
 
     public <T> T get(Class<T> serviceType) throws UnknownServiceException, ServiceLookupException {
-        return serviceType.cast(get((Type) serviceType));
+        long t0 = System.nanoTime();
+        T ret = serviceType.cast(get((Type) serviceType));
+        COUNTER.getAndAdd(System.nanoTime() - t0);
+        return ret;
     }
 
     @Override

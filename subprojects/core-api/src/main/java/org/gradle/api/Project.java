@@ -1752,4 +1752,6 @@ public interface Project extends Comparable<Project>, ExtensionAware, PluginAwar
      */
     @Incubating
     DependencyLockingHandler getDependencyLocking();
+
+    long getCounter();
 }

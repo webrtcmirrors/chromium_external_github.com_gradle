@@ -17,7 +17,6 @@
 package org.gradle.api.internal.project;
 
 import com.google.common.collect.Maps;
-import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
 import groovy.lang.Closure;
 import groovy.lang.MissingPropertyException;
@@ -92,6 +91,7 @@ import org.gradle.internal.metaobject.DynamicObject;
 import org.gradle.internal.model.RuleBasedPluginListener;
 import org.gradle.internal.reflect.Instantiator;
 import org.gradle.internal.resource.TextResourceLoader;
+import org.gradle.internal.service.DefaultServiceRegistry;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.internal.service.scopes.ServiceRegistryFactory;
 import org.gradle.internal.typeconversion.TypeConverter;
@@ -124,7 +124,6 @@ import org.gradle.util.Path;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -978,15 +977,7 @@ public class DefaultProject extends AbstractPluginAware implements ProjectIntern
     @Override
     public DependencyHandler getDependencies() {
         if (dependencyHandler == null) {
-            long t0 = System.nanoTime();
             dependencyHandler = services.get(DependencyHandler.class);
-            try {
-                if (this.rootProject == this) {
-                    Files.write(("" + (System.nanoTime() - t0)).getBytes(), new File(getProjectDir(), "cost"));
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
         return dependencyHandler;
     }
@@ -1423,6 +1414,11 @@ public class DefaultProject extends AbstractPluginAware implements ProjectIntern
     @Override
     public DependencyLockingHandler getDependencyLocking() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long getCounter() {
+        return DefaultServiceRegistry.COUNTER.get();
     }
 
     @Override
