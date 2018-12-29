@@ -981,7 +981,9 @@ public class DefaultProject extends AbstractPluginAware implements ProjectIntern
             long t0 = System.nanoTime();
             dependencyHandler = services.get(DependencyHandler.class);
             try {
-                Files.write(("" + (System.nanoTime() - t0)).getBytes(), new File(getProjectDir(), "cost"));
+                if (this.rootProject == this) {
+                    Files.write(("" + (System.nanoTime() - t0)).getBytes(), new File(getProjectDir(), "cost"));
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
