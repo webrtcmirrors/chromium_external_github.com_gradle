@@ -32,6 +32,7 @@ class PerformanceTestJvmOptions {
         if (!JavaVersion.current().isJava8Compatible() && jvmOptions.count { it.startsWith('-XX:MaxPermSize=') } == 0) {
             jvmOptions << '-XX:MaxPermSize=256m'
         }
+        jvmOptions << '-client'
 
         return jvmOptions
     }

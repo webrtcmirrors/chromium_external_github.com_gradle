@@ -331,6 +331,7 @@ abstract class AbstractToolingApiCrossVersionPerformanceTest extends Specificati
                     params.stderr = out
                     params.arguments = params.arguments = params.arguments ?: []
                     params.arguments += ["--init-script", repositoryMirrorScript.absolutePath]
+                    params.arguments += ["-client"]
                     params.arguments += profiler.getAdditionalGradleArgs(spec)
 
                     params.jvmArguments = params.jvmArguments = params.jvmArguments ?: []

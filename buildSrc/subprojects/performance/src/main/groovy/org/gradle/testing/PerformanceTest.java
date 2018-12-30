@@ -241,4 +241,9 @@ public class PerformanceTest extends DistributionTest {
             }
         }
     }
+
+    @Input
+    public long getPoisonPill() {
+        return System.currentTimeMillis();
+    }
 }
