@@ -251,10 +251,12 @@ public class DefaultServiceRegistry implements ServiceRegistry, Closeable {
      * Closes all services for this registry. For each service, if the service has a public void close() or stop() method, that method is called to close the service.
      */
     public void close() {
+        long t0 = System.nanoTime();
         noLongerMutable();
         if (state.compareAndSet(State.STARTED, State.CLOSED)) {
             CompositeStoppable.stoppable(allServices).stop();
         }
+        COUNTER.getAndAdd(System.nanoTime() - t0);
     }
 
     private void serviceRequested() {
@@ -275,9 +277,7 @@ public class DefaultServiceRegistry implements ServiceRegistry, Closeable {
     }
 
     public <T> T get(Class<T> serviceType) throws UnknownServiceException, ServiceLookupException {
-        long t0 = System.nanoTime();
         T ret = serviceType.cast(get((Type) serviceType));
-        COUNTER.getAndAdd(System.nanoTime() - t0);
         return ret;
     }
 
@@ -292,9 +292,12 @@ public class DefaultServiceRegistry implements ServiceRegistry, Closeable {
 
     @Override
     public Object find(Type serviceType) throws ServiceLookupException {
+        long t0 = System.nanoTime();
         assertValidServiceType(unwrap(serviceType));
         Service provider = getService(serviceType);
-        return provider == null ? null : provider.get();
+        Object ret = provider == null ? null : provider.get();
+        COUNTER.getAndAdd(System.nanoTime() - t0);
+        return ret;
     }
 
     private Service getService(Type serviceType) {
@@ -304,12 +307,14 @@ public class DefaultServiceRegistry implements ServiceRegistry, Closeable {
 
     @Override
     public <T> Factory<T> getFactory(Class<T> type) {
+        long t0 = System.nanoTime();
         assertValidServiceType(type);
         Service provider = getFactoryService(type);
         Factory<T> factory = provider == null ? null : (Factory<T>) provider.get();
         if (factory == null) {
             throw new UnknownServiceException(type, String.format("No factory for objects of type %s available in %s.", format(type), getDisplayName()));
         }
+        COUNTER.getAndAdd(System.nanoTime() - t0);
         return factory;
     }
 
