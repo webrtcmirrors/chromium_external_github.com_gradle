@@ -229,8 +229,8 @@ public class Main {
 
     private static List<String> getExpArgs(String version, String task) {
         String jvmArgs = jfrEnabled()
-            ? "-Dorg.gradle.jvmargs=-server -Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints"
-            : "-Dorg.gradle.jvmargs=-server -Xms1536m -Xmx1536m";
+            ? "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints"
+            : "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m";
 
         return Arrays.asList(
             gradleBinary.get(version),
