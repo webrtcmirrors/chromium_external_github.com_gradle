@@ -256,6 +256,11 @@ class DistributedPerformanceTest extends ReportGenerationPerformanceTest {
         } catch (HttpResponseException ex) {
             println("Get response ${ex.response.status}\n${ex.response.data}")
             throw ex
+        } catch (Exception e) {
+            if (e.class.name == 'HttpResponseException') {
+                println("Get response ${e.response.status}\n${e.response.data}")
+            }
+            throw e
         }
     }
 
