@@ -103,9 +103,9 @@ public class Main {
     private static ExperimentSet runASetOfExperiments() {
         String[] versions = System.getProperty("expVersions").split(",");
 
-        Experiment[] results = (Experiment[]) Stream.of(versions).map(Main::runExperiment).toArray();
+        List<Experiment> results = Stream.of(versions).map(Main::runExperiment).collect(Collectors.toList());
 
-        ExperimentSet comparison = new ExperimentSet(results);
+        ExperimentSet comparison = new ExperimentSet(results.toArray(new Experiment[0]));
 
         comparison.printResultsAndConfidence();
 
@@ -183,6 +183,10 @@ public class Main {
 
     private static boolean jfrEnabled() {
         return Boolean.parseBoolean(System.getProperty("jfrEnabled"));
+    }
+
+    private static boolean perfEnabled() {
+        return Boolean.parseBoolean(System.getProperty("perfEnabled"));
     }
 
     private static String getJfrPath(String version, int iteration) {
