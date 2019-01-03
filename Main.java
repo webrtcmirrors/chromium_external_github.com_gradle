@@ -39,6 +39,8 @@ public class Main {
             projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000/bin/gradle");
         gradleBinary.put("baseline2",
             projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-2/bin/gradle");
+        gradleBinary.put("baseline3",
+            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-3/bin/gradle");
         gradleBinary.put("current1",
             projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
         gradleBinary.put("current2",
@@ -63,46 +65,54 @@ public class Main {
         }
     }
 
-    private static class TwoExperiments {
+    private static class ExperimentSet {
         Experiment version1;
         Experiment version2;
-        double confidence;
+        Experiment version3;
+        double confidence12;
+        double confidence13;
+        double confidence23;
 
-        public TwoExperiments(Experiment version1, Experiment version2) {
+        public ExperimentSet(Experiment version1, Experiment version2, Experiment version3) {
             this.version1 = version1;
             this.version2 = version2;
-            this.confidence = 1 - new MannWhitneyUTest().mannWhitneyUTest(version1.toDoubleArray(), version2.toDoubleArray());
+            this.version3 = version3;
+            this.confidence12 = 1 - new MannWhitneyUTest().mannWhitneyUTest(version1.toDoubleArray(), version2.toDoubleArray());
+            this.confidence13 = 1 - new MannWhitneyUTest().mannWhitneyUTest(version1.toDoubleArray(), version3.toDoubleArray());
+            this.confidence23 = 1 - new MannWhitneyUTest().mannWhitneyUTest(version2.toDoubleArray(), version3.toDoubleArray());
         }
 
         public void printResultsAndConfidence() {
             version1.printResult();
             version2.printResult();
-            System.out.println(String.format("Confidence of %s and %s is %f", version1.version, version2.version, confidence));
+            version3.printResult();
+            System.out.println(String.format("Confidence is %f %f %f", confidence12, confidence13, confidence23));
         }
     }
 
     public static void main(String[] args) {
-        List<TwoExperiments> allResults = IntStream.range(0, Integer.parseInt(System.getProperty("retryCount"))).mapToObj(i -> runASetOfExperiments()).collect(Collectors.toList());
+        List<ExperimentSet> allResults = IntStream.range(0, Integer.parseInt(System.getProperty("retryCount"))).mapToObj(i -> runASetOfExperiments()).collect(Collectors.toList());
 
         if (allResults.size() > 1) {
             System.out.println("All results:");
-            allResults.forEach(TwoExperiments::printResultsAndConfidence);
+            allResults.forEach(ExperimentSet::printResultsAndConfidence);
         }
     }
 
-    private static TwoExperiments runASetOfExperiments() {
+    private static ExperimentSet runASetOfExperiments() {
         String[] versions = System.getProperty("expVersions").split(",");
 
         Experiment version1 = runExperiment(versions[0]);
         Experiment version2 = runExperiment(versions[1]);
+        Experiment version3 = runExperiment(versions[2]);
 
-        TwoExperiments comparison = new TwoExperiments(version1, version2);
+        ExperimentSet comparison = new ExperimentSet(version1, version2, version3);
 
         comparison.printResultsAndConfidence();
 
-        if (comparison.confidence > 0.99) {
-            throw new IllegalStateException("We need to stop.");
-        }
+//        if (comparison.confidence > 0.99) {
+//            throw new IllegalStateException("We need to stop.");
+//        }
         return comparison;
     }
 
