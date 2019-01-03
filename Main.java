@@ -33,9 +33,6 @@ public class Main {
     private static Map<String, String> gradleBinary = new HashMap<>();
     private static String jcmdPath = System.getenv("JAVA_HOME") + "/bin/jcmd";
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
-    private static String template = System.getProperty("template");
-    private static String task = System.getProperty("task");
-    private static Map<String, ProjectMutator> mutators = new HashMap<>();
 
     static {
         gradleBinary.put("baseline1",
@@ -46,8 +43,6 @@ public class Main {
             projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
         gradleBinary.put("current2",
             projectDirPath + "/subprojects/performance/build/integ test-2/bin/gradle");
-
-        mutators.put("largeMonolithicJavaProject", new NonApiChangeMutator());
     }
 
     private static class Experiment {
@@ -96,9 +91,12 @@ public class Main {
     }
 
     private static TwoExperiments runASetOfExperiments() {
-        String strategy = System.getProperty("strategy");
+        String[] versions = System.getProperty("expVersions").split(",");
 
-        TwoExperiments comparison = "oneByOne".equals(strategy) ? runOneByOne() : runSetBySet();
+        Experiment version1 = runExperiment(versions[0]);
+        Experiment version2 = runExperiment(versions[1]);
+
+        TwoExperiments comparison = new TwoExperiments(version1, version2);
 
         comparison.printResultsAndConfidence();
 
@@ -108,48 +106,12 @@ public class Main {
         return comparison;
     }
 
-    private static TwoExperiments runSetBySet() {
-        String[] versions = System.getProperty("expVersions").split(",");
-
-        Experiment version1 = runExperiment(versions[0]);
-        Experiment version2 = runExperiment(versions[1]);
-
-        return new TwoExperiments(version1, version2);
-    }
-
-    private static TwoExperiments runOneByOne() {
-        String[] versions = System.getProperty("expVersions").split(",");
-
-        String version1 = versions[0];
-        String version2 = versions[1];
-
-        assertTrue(!version1.equals(version2));
-
-        prepareForExperiment(version1);
-        prepareForExperiment(version2);
-
-        doWarmUp(version1, getExpArgs(version1, task));
-        doWarmUp(version2, getExpArgs(version2, task));
-
-        List<Long> version1Results = new ArrayList<>();
-        List<Long> version2Results = new ArrayList<>();
-
-        for (int i = 0; i < Integer.parseInt(System.getProperty("runCount")); ++i) {
-            version1Results.add(measureOnce(i, version1, getExpArgs(version1, task)));
-            version2Results.add(measureOnce(i, version2, getExpArgs(version2, task)));
-        }
-        stopDaemon(version1);
-        stopDaemon(version2);
-
-        return new TwoExperiments(new Experiment(version1, version1Results), new Experiment(version2, version2Results));
-    }
-
     private static void prepareForExperiment(String version) {
         initDirectory(getGradleUserHome(version));
         deleteDirectory(getExpProject(version));
 
         run(projectDir, "cp", "-r",
-            projectDirPath + "/subprojects/performance/build/" + template,
+            projectDirPath + "/subprojects/performance/build/largeJavaMultiProjectKotlinDsl",
             getExpProject(version).getAbsolutePath());
     }
 
@@ -160,10 +122,10 @@ public class Main {
     private static Experiment runExperiment(String version) {
         prepareForExperiment(version);
 
-        List<String> args = getWarmupExpArgs(version, task);
+        List<String> args = getWarmupExpArgs(version, "help");
         doWarmUp(version, args);
 
-        List<Long> results = doRun(version, getExpArgs(version, task));
+        List<Long> results = doRun(version, getExpArgs(version, "help"));
 
         stopDaemon(version);
         return new Experiment(version, results);
@@ -199,8 +161,6 @@ public class Main {
             run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
         }
 
-        mutateProject(version);
-
         long t0 = System.currentTimeMillis();
         run(workingDir, args);
         long result = System.currentTimeMillis() - t0;
@@ -210,13 +170,6 @@ public class Main {
         }
 
         return result;
-    }
-
-    private static void mutateProject(String version) {
-        ProjectMutator mutator = mutators.get(template);
-        if (mutator != null) {
-            mutator.mutate(getExpProject(version));
-        }
     }
 
     private static boolean jfrEnabled() {
@@ -229,8 +182,8 @@ public class Main {
 
     private static List<String> getExpArgs(String version, String task) {
         String jvmArgs = jfrEnabled()
-            ? "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints"
-            : "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m";
+            ? "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer"
+            : "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+PreserveFramePointer";
 
         return Arrays.asList(
             gradleBinary.get(version),
@@ -273,7 +226,6 @@ public class Main {
         env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
 
         IntStream.range(0, warmups).forEach(i -> {
-            mutateProject(version);
             run(workingDir, env, args);
         });
     }
@@ -321,20 +273,6 @@ public class Main {
     private static void assertTrue(boolean value) {
         if (!value) {
             throw new IllegalStateException();
-        }
-    }
-
-    private interface ProjectMutator {
-        void mutate(File expProject);
-    }
-
-    private static class NonApiChangeMutator implements ProjectMutator {
-        @Override
-        public void mutate(File expProject) {
-            File javaFile = new File(expProject, "src/main/java/org/gradle/test/performance/largemonolithicjavaproject/p0/Production0.java");
-            String text = readFile(javaFile);
-            text = text.replace("property9 = value;", "property9 = value;System.out.println(" + System.nanoTime() + "L);");
-            writeFile(javaFile, text);
         }
     }
 }
