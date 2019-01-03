@@ -76,11 +76,14 @@ public class Main {
 
         public void printResultsAndConfidence() {
             System.out.println(toString());
-            writeFile(new File(new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-result.txt"), toString());
+
+            String fileName = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-result.txt";
+            run(projectDir, "touch", fileName);
+            writeFile(new File(fileName), toString());
         }
 
         public String toString() {
-            String versionString = Stream.of(versions).map(Experiment::getVersion).collect(Collectors.joining("\n")) + "\n";
+            String versionString = Stream.of(versions).map(Experiment::toString).collect(Collectors.joining("\n")) + "\n";
 
             for (int i = 0; i < versions.length; ++i) {
                 for (int j = i + 1; j < versions.length; ++j) {
