@@ -19,13 +19,9 @@ import org.apache.commons.math3.stat.inference.MannWhitneyUTest;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.*;
+import java.text.*;
+import java.util.stream.*;
 
 public class Main {
     private static String projectDirPath = "/home/tcagent1/agent/work/668602365d1521fc";
@@ -41,6 +37,8 @@ public class Main {
             projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-2/bin/gradle");
         gradleBinary.put("baseline3",
             projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-3/bin/gradle");
+        gradleBinary.put("baseline4",
+            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-4/bin/gradle");
         gradleBinary.put("current1",
             projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
         gradleBinary.put("current2",
@@ -56,37 +54,40 @@ public class Main {
             this.results = results;
         }
 
+        public String getVersion() {
+            return version;
+        }
+
         private double[] toDoubleArray() {
             return results.stream().mapToDouble(Long::doubleValue).toArray();
         }
 
-        private void printResult() {
-            System.out.println(version + ": " + results.stream().map(s -> s + " ms").collect(Collectors.joining(", ")));
+        public String toString() {
+            return version + ": " + results.stream().map(s -> s + " ms").collect(Collectors.joining(", "));
         }
     }
 
     private static class ExperimentSet {
-        Experiment version1;
-        Experiment version2;
-        Experiment version3;
-        double confidence12;
-        double confidence13;
-        double confidence23;
+        Experiment[] versions;
 
-        public ExperimentSet(Experiment version1, Experiment version2, Experiment version3) {
-            this.version1 = version1;
-            this.version2 = version2;
-            this.version3 = version3;
-            this.confidence12 = 1 - new MannWhitneyUTest().mannWhitneyUTest(version1.toDoubleArray(), version2.toDoubleArray());
-            this.confidence13 = 1 - new MannWhitneyUTest().mannWhitneyUTest(version1.toDoubleArray(), version3.toDoubleArray());
-            this.confidence23 = 1 - new MannWhitneyUTest().mannWhitneyUTest(version2.toDoubleArray(), version3.toDoubleArray());
+        public ExperimentSet(Experiment[] versions) {
+            this.versions = versions;
         }
 
         public void printResultsAndConfidence() {
-            version1.printResult();
-            version2.printResult();
-            version3.printResult();
-            System.out.println(String.format("Confidence is %f %f %f", confidence12, confidence13, confidence23));
+            System.out.println(toString());
+            writeFile(new File(new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-result.txt"), toString());
+        }
+
+        public String toString() {
+            String versionString = Stream.of(versions).map(Experiment::getVersion).collect(Collectors.joining("\n")) + "\n";
+
+            for (int i = 0; i < versions.length; ++i) {
+                for (int j = i + 1; j < versions.length; ++j) {
+                    versionString += String.format("Confidence of %s and %s: %f\n", versions[i].version, versions[j].version, 1 - new MannWhitneyUTest().mannWhitneyUTest(versions[i].toDoubleArray(), versions[j].toDoubleArray()));
+                }
+            }
+            return versionString;
         }
     }
 
@@ -102,11 +103,9 @@ public class Main {
     private static ExperimentSet runASetOfExperiments() {
         String[] versions = System.getProperty("expVersions").split(",");
 
-        Experiment version1 = runExperiment(versions[0]);
-        Experiment version2 = runExperiment(versions[1]);
-        Experiment version3 = runExperiment(versions[2]);
+        Experiment[] results = (Experiment[]) Stream.of(versions).map(Main::runExperiment).toArray();
 
-        ExperimentSet comparison = new ExperimentSet(version1, version2, version3);
+        ExperimentSet comparison = new ExperimentSet(results);
 
         comparison.printResultsAndConfidence();
 
