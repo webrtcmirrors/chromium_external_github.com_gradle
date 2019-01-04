@@ -32,6 +32,7 @@ public class Main {
     private static String jcmdPath = javaHome + "/bin/jcmd";
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
     private static int runCount = Integer.parseInt(System.getProperty("runCount"));
+    private static String perfRecordPeriod = System.getProperty("perfRecordPeriod");
     private static String perfAgentDir = "/root/perf-map-agent";
     private static String flameGraphDir = "/root/FlameGraph";
     private static ExecutorService threadPool = Executors.newSingleThreadExecutor();
@@ -155,7 +156,7 @@ public class Main {
             try {
                 perfFuture.get();
                 String flameGraphFileName = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-flamegraph.svg";
-                run(projectDir, "bash", "perf script | " + flameGraphDir + "/stackcollapse-perf.pl | " + flameGraphDir + "/flamegraph.pl --color=java --hash > " + flameGraphFileName);
+                run(projectDir, "bash", "-c", "perf script | " + flameGraphDir + "/stackcollapse-perf.pl | " + flameGraphDir + "/flamegraph.pl --color=java --hash > " + flameGraphFileName);
             } catch (Exception e) {
                 handleException(e);
             }
@@ -165,7 +166,7 @@ public class Main {
     private static Future perfRecordIfNecessary(String version) {
         if (perfEnabled()) {
             String pid = readFile(getPidFile(version));
-            Future ret = threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", "60"));
+            Future ret = threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", perfRecordPeriod));
             run(new File(perfAgentDir, "out"), javaHome + "/bin/java", "-cp", "attach-main.jar:" + javaHome + "/lib/tools.jar", "net.virtualvoid.perf.AttachOnce", pid);
             return ret;
         } else {
