@@ -20,6 +20,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.concurrent.*;
 import java.text.*;
 import java.util.stream.*;
 
@@ -27,8 +28,13 @@ public class Main {
     private static String projectDirPath = "/home/tcagent1/agent/work/668602365d1521fc";
     private static File projectDir = new File(projectDirPath);
     private static Map<String, String> gradleBinary = new HashMap<>();
-    private static String jcmdPath = System.getenv("JAVA_HOME") + "/bin/jcmd";
+    private static String javaHome = System.getenv("JAVA_HOME");
+    private static String jcmdPath = javaHome + "/bin/jcmd";
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
+    private static int runCount = Integer.parseInt(System.getProperty("runCount"));
+    private static String perfAgentDir = "/root/perf-map-agent";
+    private static String flameGraphDir = "/root/FlameGraph";
+    private static ExecutorService threadPool = Executors.newSingleThreadExecutor();
 
     static {
         gradleBinary.put("baseline1",
@@ -133,14 +139,38 @@ public class Main {
 
     private static Experiment runExperiment(String version) {
         prepareForExperiment(version);
+        doWarmUp(version, getWarmupExpArgs(version, "help"));
 
-        List<String> args = getWarmupExpArgs(version, "help");
-        doWarmUp(version, args);
+        Future perfFuture = perfRecordIfNecessary(version);
 
         List<Long> results = doRun(version, getExpArgs(version, "help"));
-
         stopDaemon(version);
+
+        processPerfRecordIfNecessary(perfFuture);
         return new Experiment(version, results);
+    }
+
+    private static void processPerfRecordIfNecessary(Future perfFuture) {
+        if (perfFuture != null) {
+            try {
+                perfFuture.get();
+                String flameGraphFileName = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-flamegraph.svg";
+                run(projectDir, "bash", "perf script | " + flameGraphDir + "/stackcollapse-perf.pl | " + flameGraphDir + "/flamegraph.pl --color=java --hash > " + flameGraphFileName);
+            } catch (Exception e) {
+                handleException(e);
+            }
+        }
+    }
+
+    private static Future perfRecordIfNecessary(String version) {
+        if (perfEnabled()) {
+            String pid = readFile(getPidFile(version));
+            Future ret = threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", "60"));
+            run(new File(perfAgentDir, "out"), javaHome + "/bin/java", "-cp", "attach-main.jar:" + javaHome + "/lib/tools.jar", "net.virtualvoid.perf.AttachOnce", pid);
+            return ret;
+        } else {
+            return null;
+        }
     }
 
     private static String readFile(File file) {
@@ -161,7 +191,7 @@ public class Main {
     }
 
     private static List<Long> doRun(String version, List<String> args) {
-        int runCount = Integer.parseInt(System.getProperty("runCount"));
+
         return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args)).collect(Collectors.toList());
     }
 
