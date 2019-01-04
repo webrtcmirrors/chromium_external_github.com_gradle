@@ -108,6 +108,8 @@ public class Main {
             System.out.println("All results:");
             allResults.forEach(ExperimentSet::printResultsAndConfidence);
         }
+
+        threadPool.shutdown();
     }
 
     private static ExperimentSet runASetOfExperiments() {
@@ -166,6 +168,7 @@ public class Main {
     private static Future perfRecordIfNecessary(String version) {
         if (perfEnabled()) {
             String pid = readFile(getPidFile(version));
+            System.out.println("Attach to pid: " + pid);
             Future ret = threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", perfRecordPeriod));
             run(new File(perfAgentDir, "out"), javaHome + "/bin/java", "-cp", "attach-main.jar:" + javaHome + "/lib/tools.jar", "net.virtualvoid.perf.AttachOnce", pid);
             return ret;
