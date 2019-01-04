@@ -242,14 +242,10 @@ public class Main {
     }
 
     private static List<String> getWarmupExpArgs(String version, String task) {
-        if (jfrEnabled()) {
-            List<String> args = new ArrayList<>(getExpArgs(version, task));
-            args.add("--init-script");
-            args.add(projectDirPath + "/pid-instrumentation.gradle");
-            return args;
-        } else {
-            return getExpArgs(version, task);
-        }
+        List<String> args = new ArrayList<>(getExpArgs(version, task));
+        args.add("--init-script");
+        args.add(projectDirPath + "/pid-instrumentation.gradle");
+        return args;
     }
 
     private static File getPidFile(String version) {
