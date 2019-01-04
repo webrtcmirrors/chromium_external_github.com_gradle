@@ -147,9 +147,11 @@ public class Main {
         Future perfFuture = perfRecordIfNecessary(version);
 
         List<Long> results = doRun(version, getExpArgs(version, "help"));
-        stopDaemon(version);
 
         processPerfRecordIfNecessary(perfFuture);
+
+        stopDaemon(version);
+
         return new Experiment(version, results);
     }
 
