@@ -157,8 +157,12 @@ public class Main {
         if (perfFuture != null) {
             try {
                 perfFuture.get();
-                String flameGraphFileName = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-flamegraph.svg";
+                String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
+                String flameGraphFileName = timestamp + "-flamegraph.svg";
+                String stackFileName = timestamp + ".stack";
                 run(projectDir, "bash", "-c", "perf script | " + flameGraphDir + "/stackcollapse-perf.pl | " + flameGraphDir + "/flamegraph.pl --color=java --hash > " + flameGraphFileName);
+                run(projectDir, "bash", "-c", "perf script --header > " + stackFileName);
+                run(projectDir, "gzip", stackFileName);
             } catch (Exception e) {
                 handleException(e);
             }
