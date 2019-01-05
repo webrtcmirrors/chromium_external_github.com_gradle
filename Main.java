@@ -115,7 +115,13 @@ public class Main {
     private static ExperimentSet runASetOfExperiments() {
         String[] versions = System.getProperty("expVersions").split(",");
 
+        Stream.of(versions).forEach(Main::prepareForExperiment);
+
+        Future perfFuture = perfRecordIfNecessary();
+
         List<Experiment> results = Stream.of(versions).map(Main::runExperiment).collect(Collectors.toList());
+
+        processPerfRecordIfNecessary(perfFuture);
 
         ExperimentSet comparison = new ExperimentSet(results.toArray(new Experiment[0]));
 
@@ -141,17 +147,11 @@ public class Main {
     }
 
     private static Experiment runExperiment(String version) {
-        prepareForExperiment(version);
-        doWarmUp(version, getWarmupExpArgs(version, "help"));
-
-        Future perfFuture = perfRecordIfNecessary(version);
+        doWarmUp(version);
 
         List<Long> results = doRun(version, getExpArgs(version, "help"));
 
-        processPerfRecordIfNecessary(perfFuture);
-
         stopDaemon(version);
-
         return new Experiment(version, results);
     }
 
@@ -171,15 +171,18 @@ public class Main {
         }
     }
 
-    private static Future perfRecordIfNecessary(String version) {
+    private static Future perfRecordIfNecessary() {
         if (perfEnabled()) {
-            String pid = readFile(getPidFile(version));
-            System.out.println("Attach to pid: " + pid);
-            Future ret = threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", perfRecordPeriod));
-            run(new File(perfAgentDir, "out"), javaHome + "/bin/java", "-cp", "attach-main.jar:" + javaHome + "/lib/tools.jar", "net.virtualvoid.perf.AttachOnce", pid);
-            return ret;
+            return threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", perfRecordPeriod));
         } else {
             return null;
+        }
+    }
+
+    private static void attachToDaemon(String version) {
+        if (perfEnabled()) {
+            String pid = readFile(getPidFile(version));
+            run(new File(perfAgentDir, "out"), javaHome + "/bin/java", "-cp", "attach-main.jar:" + javaHome + "/lib/tools.jar", "net.virtualvoid.perf.AttachOnce", pid);
         }
     }
 
@@ -270,15 +273,20 @@ public class Main {
         return new File(projectDirPath, version + "ExpProject");
     }
 
-    private static void doWarmUp(String version, List<String> args) {
+    private static void doWarmUp(String version) {
         File workingDir = getExpProject(version);
         int warmups = Integer.parseInt(System.getProperty("warmUp"));
 
         Map<String, String> env = new HashMap<>();
         env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
 
-        IntStream.range(0, warmups).forEach(i -> {
-            run(workingDir, env, args);
+        // first warmup to write pid
+        run(workingDir, env, getWarmupExpArgs(version, "help"));
+
+        attachToDaemon(version);
+
+        IntStream.range(1, warmups).forEach(i -> {
+            run(workingDir, getExpArgs(version, "help"));
         });
     }
 
