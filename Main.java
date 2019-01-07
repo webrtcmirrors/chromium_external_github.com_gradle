@@ -133,9 +133,12 @@ public class Main {
     }
 
     private static void runInterleaveWarmups(String[] versions) {
-        IntStream.range(0, warmups).forEach(i -> {
-            Stream.of(versions).forEach(Main::doWarmUp);
-        });
+        for (int i = 0; i < warmups; ++i) {
+            for (int j = 0; j < versions.length; ++j) {
+                System.out.println("Running " + versions[j] + " warmup " + i);
+                doWarmUp(versions[j]);
+            }
+        }
     }
 
     private static void doWarmUp(String version) {
@@ -149,8 +152,8 @@ public class Main {
         }
         for (int i = 0; i < runCount; i++) {
             for (int j = 0; j < versions.length; j++) {
+                System.out.println("Running " + versions[j] + " execution " + i);
                 long time = measureOnce(versions[j]);
-
                 times.get(j).add(time);
             }
         }
