@@ -16,7 +16,7 @@
 
 import org.apache.commons.math3.stat.inference.MannWhitneyUTest;
 
-import java.io.File;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
@@ -32,8 +32,6 @@ public class Main {
     private static String jcmdPath = javaHome + "/bin/jcmd";
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
     private static int runCount = Integer.parseInt(System.getProperty("runCount"));
-    private static String perfRecordPeriod = System.getProperty("perfRecordPeriod");
-    private static String perfAgentDir = "/root/perf-map-agent";
     private static String flameGraphDir = "/root/FlameGraph";
     private static ExecutorService threadPool = Executors.newSingleThreadExecutor();
 
@@ -54,9 +52,9 @@ public class Main {
 
     private static class Experiment {
         String version;
-        List<Long> results;
+        List<ExecutionResult> results;
 
-        public Experiment(String version, List<Long> results) {
+        public Experiment(String version, List<ExecutionResult> results) {
             this.version = version;
             this.results = results;
         }
@@ -66,11 +64,11 @@ public class Main {
         }
 
         private double[] toDoubleArray() {
-            return results.stream().mapToDouble(Long::doubleValue).toArray();
+            return results.stream().map(ExecutionResult::getTime).mapToDouble(Long::doubleValue).toArray();
         }
 
         public String toString() {
-            return version + ": " + results.stream().map(s -> s + " ms").collect(Collectors.joining(", "));
+            return version + ": " + results.stream().map(result -> result.output + "\n" + result.time + " ms").collect(Collectors.joining("\n"));
         }
     }
 
@@ -117,19 +115,12 @@ public class Main {
 
         Stream.of(versions).forEach(Main::prepareForExperiment);
 
-        Future perfFuture = perfRecordIfNecessary();
-
         List<Experiment> results = Stream.of(versions).map(Main::runExperiment).collect(Collectors.toList());
-
-        processPerfRecordIfNecessary(perfFuture);
 
         ExperimentSet comparison = new ExperimentSet(results.toArray(new Experiment[0]));
 
         comparison.printResultsAndConfidence();
 
-//        if (comparison.confidence > 0.99) {
-//            throw new IllegalStateException("We need to stop.");
-//        }
         return comparison;
     }
 
@@ -143,47 +134,17 @@ public class Main {
     }
 
     private static void stopDaemon(String version) {
-        run(getExpProject(version), getExpArgs(version, "--stop"));
+        run(getExpProject(version), getWarmupExpArgs(version, "--stop"));
     }
 
     private static Experiment runExperiment(String version) {
         doWarmUp(version);
 
-        List<Long> results = doRun(version, getExpArgs(version, "help"));
+        List<ExecutionResult> results = doRun(version, getExpArgs(version, "help"));
 
         stopDaemon(version);
+
         return new Experiment(version, results);
-    }
-
-    private static void processPerfRecordIfNecessary(Future perfFuture) {
-        if (perfFuture != null) {
-            try {
-                perfFuture.get();
-                String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
-                String flameGraphFileName = timestamp + "-flamegraph.svg";
-                String stackFileName = timestamp + ".stack";
-                run(projectDir, "bash", "-c", "perf script | " + flameGraphDir + "/stackcollapse-perf.pl | " + flameGraphDir + "/flamegraph.pl --color=java --hash > " + flameGraphFileName);
-                run(projectDir, "bash", "-c", "perf script --header > " + stackFileName);
-                run(projectDir, "gzip", stackFileName);
-            } catch (Exception e) {
-                handleException(e);
-            }
-        }
-    }
-
-    private static Future perfRecordIfNecessary() {
-        if (perfEnabled()) {
-            return threadPool.submit(() -> run(projectDir, "perf", "record", "-F", "100", "-a", "-g", "--", "sleep", perfRecordPeriod));
-        } else {
-            return null;
-        }
-    }
-
-    private static void attachToDaemon(String version) {
-        if (perfEnabled()) {
-            String pid = readFile(getPidFile(version));
-            run(new File(perfAgentDir, "out"), javaHome + "/bin/java", "-cp", "attach-main.jar:" + javaHome + "/lib/tools.jar", "net.virtualvoid.perf.AttachOnce", pid);
-        }
     }
 
     private static String readFile(File file) {
@@ -203,67 +164,57 @@ public class Main {
         }
     }
 
-    private static List<Long> doRun(String version, List<String> args) {
-
+    private static List<ExecutionResult> doRun(String version, List<String> args) {
         return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args)).collect(Collectors.toList());
     }
 
-    private static long measureOnce(int index, String version, List<String> args) {
-        String pid = jfrEnabled() ? readFile(getPidFile(version)) : null;
+    private static ExecutionResult measureOnce(int index, String version, List<String> args) {
         File workingDir = getExpProject(version);
 
-        if (jfrEnabled()) {
-            run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
-        }
-
         long t0 = System.currentTimeMillis();
-        run(workingDir, args);
-        long result = System.currentTimeMillis() - t0;
+        String output = runGetStdout(workingDir, args);
+        long time = System.currentTimeMillis() - t0;
 
-        if (jfrEnabled()) {
-            run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
+        return new ExecutionResult(output, time);
+    }
+
+    private static class ExecutionResult {
+        String output;
+        long time;
+
+        public long getTime() {
+            return time;
         }
 
-        return result;
+        public ExecutionResult(String output, long time) {
+            this.output = output;
+            this.time = time;
+        }
     }
 
-    private static boolean jfrEnabled() {
-        return Boolean.parseBoolean(System.getProperty("jfrEnabled"));
-    }
-
-    private static boolean perfEnabled() {
-        return Boolean.parseBoolean(System.getProperty("perfEnabled"));
-    }
-
-    private static String getJfrPath(String version, int iteration) {
-        return new File(getExpProject(version), version + "_" + iteration + ".jfr").getAbsolutePath();
-    }
-
-    private static List<String> getExpArgs(String version, String task) {
-        String jvmArgs = jfrEnabled()
-            ? "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer"
-            : "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+PreserveFramePointer";
-
+    private static List<String> getWarmupExpArgs(String version, String task) {
         return Arrays.asList(
             gradleBinary.get(version),
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            jvmArgs,
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
             task
         );
     }
 
-    private static List<String> getWarmupExpArgs(String version, String task) {
-        List<String> args = new ArrayList<>(getExpArgs(version, task));
-        args.add("--init-script");
-        args.add(projectDirPath + "/pid-instrumentation.gradle");
+    private static List<String> getExpArgs(String version, String task) {
+        List<String> args = new ArrayList<>(Arrays.asList("perf", "stat", "-a", "--"));
+        args.addAll(getWarmupExpArgs(version, task));
         return args;
     }
 
-    private static File getPidFile(String version) {
-        return new File(getExpProject(version), "pid");
-    }
+//    private static List<String> getWarmupExpArgs(String version, String task) {
+//        List<String> args = new ArrayList<>(getExpArgs(version, task));
+//        args.add("--init-script");
+//        args.add(projectDirPath + "/pid-instrumentation.gradle");
+//        return args;
+//    }
 
     private static File getGradleUserHome(String version) {
         return new File(projectDirPath, version + "GradleUserHome");
@@ -277,16 +228,8 @@ public class Main {
         File workingDir = getExpProject(version);
         int warmups = Integer.parseInt(System.getProperty("warmUp"));
 
-        Map<String, String> env = new HashMap<>();
-        env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
-
-        // first warmup to write pid
-        run(workingDir, env, getWarmupExpArgs(version, "help"));
-
-        attachToDaemon(version);
-
-        IntStream.range(1, warmups).forEach(i -> {
-            run(workingDir, getExpArgs(version, "help"));
+        IntStream.range(0, warmups).forEach(i -> {
+            run(workingDir, getWarmupExpArgs(version, "help"));
         });
     }
 
@@ -311,6 +254,24 @@ public class Main {
 
     private static void run(File workingDir, List<String> args) {
         run(workingDir, null, args);
+    }
+
+    private static String runGetStdout(File workingDir, List<String> args) {
+        try {
+            Process p = new ProcessBuilder(args).directory(workingDir).start();
+            BufferedReader br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            String line;
+            StringBuilder sb = new StringBuilder();
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+            int code = p.waitFor();
+            assertTrue(code == 0);
+            return sb.toString();
+        } catch (Exception e) {
+            handleException(e);
+            return null;
+        }
     }
 
     private static void run(File workingDir, Map<String, String> envs, List<String> args) {
