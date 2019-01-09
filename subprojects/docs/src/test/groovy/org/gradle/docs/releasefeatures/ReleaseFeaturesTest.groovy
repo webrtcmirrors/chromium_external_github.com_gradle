@@ -35,6 +35,7 @@ class ReleaseFeaturesTest extends Specification {
         lines.every { it.length() <= 80 }
     }
 
+    // some unimportant change
     def "failed test"() {
         expect:
         false
