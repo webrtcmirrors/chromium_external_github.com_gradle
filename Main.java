@@ -140,7 +140,9 @@ public class Main {
     private static Experiment runExperiment(String version) {
         doWarmUp(version);
 
-        List<ExecutionResult> results = doRun(version, getExpArgs(version, "help"));
+        String pid = readFile(getPidFile(version));
+
+        List<ExecutionResult> results = doRun(version, getExpArgs(version, "help", pid));
 
         stopDaemon(version);
 
@@ -203,8 +205,8 @@ public class Main {
         );
     }
 
-    private static List<String> getExpArgs(String version, String task) {
-        List<String> args = new ArrayList<>(Arrays.asList("perf", "stat", "-a", "--"));
+    private static List<String> getExpArgs(String version, String task, String pid) {
+        List<String> args = new ArrayList<>(Arrays.asList("perf", "stat", "-p", pid, "--"));
         args.addAll(getWarmupExpArgs(version, task));
         return args;
     }
@@ -224,11 +226,24 @@ public class Main {
         return new File(projectDirPath, version + "ExpProject");
     }
 
+    private static File getPidFile(String version) {
+        return new File(getExpProject(version), "pid");
+    }
+
     private static void doWarmUp(String version) {
         File workingDir = getExpProject(version);
         int warmups = Integer.parseInt(System.getProperty("warmUp"));
 
-        IntStream.range(0, warmups).forEach(i -> {
+        List<String> args = new ArrayList<>(getWarmupExpArgs(version, "help"));
+        args.add("--init-script");
+        args.add(projectDirPath + "/pid-instrumentation.gradle");
+
+        Map<String, String> env = new HashMap<>();
+        env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
+
+        run(workingDir, env, args);
+
+        IntStream.range(1, warmups).forEach(i -> {
             run(workingDir, getWarmupExpArgs(version, "help"));
         });
     }
