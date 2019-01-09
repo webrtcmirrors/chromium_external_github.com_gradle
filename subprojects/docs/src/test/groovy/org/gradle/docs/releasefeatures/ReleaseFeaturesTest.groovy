@@ -34,4 +34,9 @@ class ReleaseFeaturesTest extends Specification {
         lines.every { it.startsWith(" - ") }
         lines.every { it.length() <= 80 }
     }
+
+    def "flaky test"() {
+        expect:
+        System.currentTimeMillis() % 2 == 0
+    }
 }
