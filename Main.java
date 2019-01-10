@@ -121,6 +121,10 @@ public class Main {
 
         comparison.printResultsAndConfidence();
 
+        if (1 - new MannWhitneyUTest().mannWhitneyUTest(results.get(0).toDoubleArray(), results.get(1).toDoubleArray()) > 0.999) {
+            throw new IllegalStateException("Stop!");
+        }
+
         return comparison;
     }
 
@@ -142,42 +146,47 @@ public class Main {
 
         String pid = readFile(getPidFile(version));
 
-        List<ExecutionResult> results = doRun(version, getExpArgs(version, "help", pid));
+        List<ExecutionResult> results = doRun(version, getExpArgs(version, "help", pid), pid);
 
         stopDaemon(version);
+
+        generateFlameGraphs(version);
 
         return new Experiment(version, results);
     }
 
-    private static String readFile(File file) {
-        try {
-            return new String(Files.readAllBytes(file.toPath()));
-        } catch (Exception e) {
-            handleException(e);
-            return null;
-        }
+    private static void generateFlameGraphs(String version) {
+        IntStream.range(0, runCount).forEach(i -> run(getExpProject(version), "bash", "-c", flameGraphDir + "/flamegraph.pl --color=io --countname=us < out" + i + ".stacks > out" + i + ".svg"));
     }
 
-    private static void writeFile(File file, String text) {
-        try {
-            Files.write(file.toPath(), text.getBytes(), StandardOpenOption.WRITE);
-        } catch (Exception e) {
-            handleException(e);
-        }
+    private static List<ExecutionResult> doRun(String version, List<String> args, String daemonPid) {
+        return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args, daemonPid)).collect(Collectors.toList());
     }
 
-    private static List<ExecutionResult> doRun(String version, List<String> args) {
-        return IntStream.range(0, runCount).mapToObj(i -> measureOnce(i, version, args)).collect(Collectors.toList());
-    }
-
-    private static ExecutionResult measureOnce(int index, String version, List<String> args) {
+    private static ExecutionResult measureOnce(int index, String version, List<String> args, String daemonPid) {
         File workingDir = getExpProject(version);
+
+        Thread thread = startOffCpuTimeThread(index, version, daemonPid);
 
         long t0 = System.currentTimeMillis();
         String output = runGetStdout(workingDir, args);
         long time = System.currentTimeMillis() - t0;
 
+        try {
+            thread.join();
+        } catch (Exception e) {
+            handleException(e);
+        }
+
         return new ExecutionResult(output, time);
+    }
+
+    private static Thread startOffCpuTimeThread(final int index, final String version, final String pid) {
+        Thread t = new Thread(() ->
+            run(getExpProject(version), "bash", "-c", "/usr/share/bcc/tools/offcputime -df -p " + pid + " 2 > out" + index + ".stacks")
+        );
+        t.start();
+        return t;
     }
 
     private static class ExecutionResult {
@@ -200,7 +209,7 @@ public class Main {
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+PreserveFramePointer",
             task
         );
     }
@@ -210,13 +219,6 @@ public class Main {
         args.addAll(getWarmupExpArgs(version, task));
         return args;
     }
-
-//    private static List<String> getWarmupExpArgs(String version, String task) {
-//        List<String> args = new ArrayList<>(getExpArgs(version, task));
-//        args.add("--init-script");
-//        args.add(projectDirPath + "/pid-instrumentation.gradle");
-//        return args;
-//    }
 
     private static File getGradleUserHome(String version) {
         return new File(projectDirPath, version + "GradleUserHome");
@@ -251,6 +253,24 @@ public class Main {
     private static void deleteDirectory(File dir) {
         if (dir.exists()) {
             run(projectDir, "rm", "-rf", dir.getAbsolutePath());
+        }
+    }
+
+
+    private static String readFile(File file) {
+        try {
+            return new String(Files.readAllBytes(file.toPath()));
+        } catch (Exception e) {
+            handleException(e);
+            return null;
+        }
+    }
+
+    private static void writeFile(File file, String text) {
+        try {
+            Files.write(file.toPath(), text.getBytes(), StandardOpenOption.WRITE);
+        } catch (Exception e) {
+            handleException(e);
         }
     }
 
