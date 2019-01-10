@@ -25,13 +25,10 @@ import org.gradle.api.internal.changedetection.TaskExecutionMode
 import org.gradle.api.internal.changedetection.TaskExecutionModeResolver
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.internal.project.ProjectInternal
-import org.gradle.api.internal.tasks.TaskDestroyablesInternal
 import org.gradle.api.internal.tasks.TaskExecuter
 import org.gradle.api.internal.tasks.TaskExecuterResult
 import org.gradle.api.internal.tasks.TaskExecutionContext
-import org.gradle.api.internal.tasks.TaskLocalStateInternal
 import org.gradle.api.internal.tasks.TaskStateInternal
-import org.gradle.api.internal.tasks.properties.PropertyWalker
 import org.gradle.internal.service.ServiceRegistry
 import spock.lang.Specification
 import spock.lang.Subject
@@ -41,39 +38,29 @@ class ResolveTaskExecutionModeExecuterTest extends Specification {
     final delegate = Mock(TaskExecuter)
     final outputs = Mock(TaskOutputsInternal)
     final inputs = Mock(TaskInputsInternal)
-    final destroyables = Stub(TaskDestroyablesInternal)
-    final localState = Stub(TaskLocalStateInternal)
     final task = Mock(TaskInternal)
     final taskState = Mock(TaskStateInternal)
     final taskContext = Mock(TaskExecutionContext)
     final repository = Mock(TaskExecutionModeResolver)
     final executionMode = TaskExecutionMode.INCREMENTAL
     final resolver = Mock(FileResolver)
-    final propertyWalker = Mock(PropertyWalker)
     final project = Mock(ProjectInternal)
     final serviceRegistry = Mock(ServiceRegistry)
     final Action<Task> action = Mock(Action)
+    final taskProperties = Mock(TaskProperties)
 
-    final executer = new ResolveTaskExecutionModeExecuter(repository, resolver, propertyWalker, delegate)
+    final executer = new ResolveTaskExecutionModeExecuter(repository, delegate)
 
     def 'taskContext is initialized and cleaned as expected'() {
         when:
         executer.execute(task, taskState, taskContext)
 
         then: 'taskContext is initialized with task artifact state'
-        1 * taskContext.setTaskProperties(_)
+        1 * taskContext.getTaskProperties() >> taskProperties
         1 * repository.getExecutionMode(task, _) >> executionMode
         1 * taskContext.setTaskExecutionMode(executionMode)
-        2 * task.getOutputs() >> outputs
-        1 * task.getInputs() >> inputs
-        1 * task.getDestroyables() >> destroyables
-        1 * task.getLocalState() >> localState
+        1 * task.getOutputs() >> outputs
         1 * outputs.setPreviousOutputFiles(_)
-        1 * task.getProject() >> project
-        1 * project.getFileResolver() >> resolver
-        1 * propertyWalker.visitProperties(_, _, task)
-        1 * inputs.visitRegisteredProperties(_)
-        1 * outputs.visitRegisteredProperties(_)
 
         then: 'delegate is executed'
         1 * delegate.execute(task, taskState, taskContext) >> TaskExecuterResult.NO_REUSED_OUTPUT
@@ -81,7 +68,6 @@ class ResolveTaskExecutionModeExecuterTest extends Specification {
         then: 'task artifact state is removed from taskContext'
         1 * outputs.setPreviousOutputFiles(null)
         1 * taskContext.setTaskExecutionMode(null)
-        1 * taskContext.setTaskProperties(null)
 
         and: 'nothing else'
         0 * _

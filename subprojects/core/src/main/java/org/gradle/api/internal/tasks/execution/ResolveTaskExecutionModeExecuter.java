@@ -29,9 +29,7 @@ import org.gradle.api.internal.tasks.TaskExecuter;
 import org.gradle.api.internal.tasks.TaskExecuterResult;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
 import org.gradle.api.internal.tasks.TaskStateInternal;
-import org.gradle.api.internal.tasks.properties.PropertyWalker;
 import org.gradle.internal.execution.history.AfterPreviousExecutionState;
-import org.gradle.internal.file.PathToFileResolver;
 import org.gradle.internal.fingerprint.FileCollectionFingerprint;
 import org.gradle.internal.time.Time;
 import org.gradle.internal.time.Timer;
@@ -46,14 +44,10 @@ import java.util.Set;
 public class ResolveTaskExecutionModeExecuter implements TaskExecuter {
     private static final Logger LOGGER = LoggerFactory.getLogger(ResolveTaskExecutionModeExecuter.class);
 
-    private final PropertyWalker propertyWalker;
-    private final PathToFileResolver fileResolver;
     private final TaskExecuter executer;
     private final TaskExecutionModeResolver executionModeResolver;
 
-    public ResolveTaskExecutionModeExecuter(TaskExecutionModeResolver executionModeResolver, PathToFileResolver fileResolver, PropertyWalker propertyWalker, TaskExecuter executer) {
-        this.propertyWalker = propertyWalker;
-        this.fileResolver = fileResolver;
+    public ResolveTaskExecutionModeExecuter(TaskExecutionModeResolver executionModeResolver, TaskExecuter executer) {
         this.executer = executer;
         this.executionModeResolver = executionModeResolver;
     }
@@ -61,8 +55,7 @@ public class ResolveTaskExecutionModeExecuter implements TaskExecuter {
     @Override
     public TaskExecuterResult execute(TaskInternal task, TaskStateInternal state, final TaskExecutionContext context) {
         Timer clock = Time.startTimer();
-        TaskProperties taskProperties = DefaultTaskProperties.resolve(propertyWalker, fileResolver, task);
-        context.setTaskProperties(taskProperties);
+        TaskProperties taskProperties = context.getTaskProperties();
         TaskExecutionMode taskExecutionMode = executionModeResolver.getExecutionMode(task, taskProperties);
         TaskOutputsInternal outputs = task.getOutputs();
 
@@ -95,7 +88,6 @@ public class ResolveTaskExecutionModeExecuter implements TaskExecuter {
         } finally {
             outputs.setPreviousOutputFiles(null);
             context.setTaskExecutionMode(null);
-            context.setTaskProperties(null);
             LOGGER.debug("Removed task artifact state for {} from context.");
         }
     }
