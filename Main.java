@@ -33,6 +33,7 @@ public class Main {
     private static String jfcPath = projectDirPath + "/subprojects/internal-performance-testing/src/main/resources/org/gradle/performance/fixture/gradle.jfc";
     private static int runCount = Integer.parseInt(System.getProperty("runCount"));
     private static String flameGraphDir = "/root/FlameGraph";
+    private static String cpuTempCmd = "/root/msr-cloud-tools/cputemp";
     private static ExecutorService threadPool = Executors.newSingleThreadExecutor();
 
     static {
@@ -121,9 +122,9 @@ public class Main {
 
         comparison.printResultsAndConfidence();
 
-        if (1 - new MannWhitneyUTest().mannWhitneyUTest(results.get(0).toDoubleArray(), results.get(1).toDoubleArray()) > 0.999) {
-            throw new IllegalStateException("Stop!");
-        }
+//        if (1 - new MannWhitneyUTest().mannWhitneyUTest(results.get(0).toDoubleArray(), results.get(1).toDoubleArray()) > 0.999) {
+//            throw new IllegalStateException("Stop!");
+//        }
 
         return comparison;
     }
@@ -150,13 +151,7 @@ public class Main {
 
         stopDaemon(version);
 
-        generateFlameGraphs(version);
-
         return new Experiment(version, results);
-    }
-
-    private static void generateFlameGraphs(String version) {
-        IntStream.range(0, runCount).forEach(i -> run(getExpProject(version), "bash", "-c", flameGraphDir + "/flamegraph.pl --color=io --countname=us < out" + i + ".stacks > out" + i + ".svg"));
     }
 
     private static List<ExecutionResult> doRun(String version, List<String> args, String daemonPid) {
@@ -166,27 +161,13 @@ public class Main {
     private static ExecutionResult measureOnce(int index, String version, List<String> args, String daemonPid) {
         File workingDir = getExpProject(version);
 
-        Thread thread = startOffCpuTimeThread(index, version, daemonPid);
-
         long t0 = System.currentTimeMillis();
-        String output = runGetStdout(workingDir, args);
+        String output = runGetStderr(workingDir, args);
         long time = System.currentTimeMillis() - t0;
 
-        try {
-            thread.join();
-        } catch (Exception e) {
-            handleException(e);
-        }
+        String cpuTemp = runGetStdout(workingDir, Arrays.asList(cpuTempCmd));
 
-        return new ExecutionResult(output, time);
-    }
-
-    private static Thread startOffCpuTimeThread(final int index, final String version, final String pid) {
-        Thread t = new Thread(() ->
-            run(getExpProject(version), "bash", "-c", "/usr/share/bcc/tools/offcputime -df -p " + pid + " 2 > out" + index + ".stacks")
-        );
-        t.start();
-        return t;
+        return new ExecutionResult(output + "\n" + cpuTemp, time);
     }
 
     private static class ExecutionResult {
@@ -209,7 +190,7 @@ public class Main {
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+PreserveFramePointer",
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
             task
         );
     }
@@ -292,9 +273,17 @@ public class Main {
     }
 
     private static String runGetStdout(File workingDir, List<String> args) {
+        return runGetOutput(workingDir, args, true);
+    }
+
+    private static String runGetStderr(File workingDir, List<String> args) {
+        return runGetOutput(workingDir, args, false);
+    }
+
+    private static String runGetOutput(File workingDir, List<String> args, boolean stdout) {
         try {
             Process p = new ProcessBuilder(args).directory(workingDir).start();
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            BufferedReader br = new BufferedReader(new InputStreamReader(stdout ? p.getInputStream() : p.getErrorStream()));
             String line;
             StringBuilder sb = new StringBuilder();
             while ((line = br.readLine()) != null) {
