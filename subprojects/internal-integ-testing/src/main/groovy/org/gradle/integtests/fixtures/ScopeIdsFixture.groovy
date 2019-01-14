@@ -35,6 +35,7 @@ class ScopeIdsFixture extends UserInitScriptExecuterFixture {
 
     private final List<Map<String, ScopeIds>> idsOfBuildTrees = []
 
+    boolean disableConsistentBuildInvocationIdCheck
     boolean disableConsistentWorkspaceIdCheck
     boolean disableConsistentUserIdCheck
 
@@ -134,9 +135,11 @@ class ScopeIdsFixture extends UserInitScriptExecuterFixture {
 
         // Assert that same IDs were used for all builds in build
         def allScopeIds = ids.values()
-        def buildInvocationIds = allScopeIds.buildInvocation
 
-        assert buildInvocationIds.unique(false).size() == 1
+        if (!disableConsistentBuildInvocationIdCheck) {
+            def buildInvocationIds = allScopeIds.buildInvocation
+            assert buildInvocationIds.unique(false).size() == 1
+        }
 
         if (!disableConsistentWorkspaceIdCheck) {
             def workspaceIds = allScopeIds.workspace

@@ -71,6 +71,8 @@ class ScopeIdsIntegrationTest extends AbstractIntegrationSpec {
 
     def "gradle-build builds with different root does not inherit workspace id"() {
         given:
+        // GradleBuild launched builds have their own build invocation IDs
+        scopeIds.disableConsistentBuildInvocationIdCheck = true
         // GradleBuild launched builds with a different root dir
         // are not considered to be of the same workspace
         scopeIds.disableConsistentWorkspaceIdCheck = true
@@ -92,6 +94,8 @@ class ScopeIdsIntegrationTest extends AbstractIntegrationSpec {
 
     def "gradle-build builds with different gradle user home does not inherit user id"() {
         given:
+        // GradleBuild launched builds have their own build invocation IDs
+        scopeIds.disableConsistentBuildInvocationIdCheck = true
         scopeIds.disableConsistentUserIdCheck = true
         file("other-home/init.d/id.gradle") << scopeIds.initScriptContent()
 
@@ -111,11 +115,15 @@ class ScopeIdsIntegrationTest extends AbstractIntegrationSpec {
         ids[":"].user != ids[buildPaths[1]].user
     }
 
-    def "gradle-build with same root and user dir inherits all"() {
+    def "gradle-build with same root and user dir inherits workspace and user id"() {
+        given:
+        // GradleBuild launched builds have their own build invocation IDs
+        scopeIds.disableConsistentBuildInvocationIdCheck = true
         when:
         settingsFile << "rootProject.name = 'root'"
         buildScript """
-            task t(type: GradleBuild) {}
+            task t(type: GradleBuild
+            ) {}
         """
 
         then:

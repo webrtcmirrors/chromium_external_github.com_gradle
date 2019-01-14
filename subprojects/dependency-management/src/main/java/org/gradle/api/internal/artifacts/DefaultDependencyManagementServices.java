@@ -26,12 +26,11 @@ import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.artifacts.dsl.DependencyLockingHandler;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.attributes.AttributesSchema;
-import org.gradle.api.internal.CollectionCallbackActionDecorator;
 import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.internal.CollectionCallbackActionDecorator;
 import org.gradle.api.internal.DocumentationRegistry;
 import org.gradle.api.internal.DomainObjectContext;
 import org.gradle.api.internal.FeaturePreviews;
-import org.gradle.internal.instantiation.InstantiatorFactory;
 import org.gradle.api.internal.artifacts.component.ComponentIdentifierFactory;
 import org.gradle.api.internal.artifacts.configurations.ConfigurationContainerInternal;
 import org.gradle.api.internal.artifacts.configurations.DefaultConfigurationContainer;
@@ -123,7 +122,7 @@ import org.gradle.internal.execution.impl.steps.UpToDateResult;
 import org.gradle.internal.execution.timeout.TimeoutHandler;
 import org.gradle.internal.fingerprint.impl.AbsolutePathFileCollectionFingerprinter;
 import org.gradle.internal.fingerprint.impl.OutputFileCollectionFingerprinter;
-import org.gradle.internal.id.UniqueId;
+import org.gradle.internal.instantiation.InstantiatorFactory;
 import org.gradle.internal.isolation.IsolatableFactory;
 import org.gradle.internal.locking.DefaultDependencyLockingHandler;
 import org.gradle.internal.locking.DefaultDependencyLockingProvider;
@@ -134,6 +133,7 @@ import org.gradle.internal.resolve.caching.ComponentMetadataSupplierRuleExecutor
 import org.gradle.internal.resource.cached.ExternalResourceFileStore;
 import org.gradle.internal.resource.local.FileResourceRepository;
 import org.gradle.internal.resource.local.LocallyAvailableResourceFinder;
+import org.gradle.internal.scopeids.id.BuildInvocationScopeId;
 import org.gradle.internal.service.DefaultServiceRegistry;
 import org.gradle.internal.service.ServiceRegistration;
 import org.gradle.internal.service.ServiceRegistry;
@@ -194,7 +194,9 @@ public class DefaultDependencyManagementServices implements DependencyManagement
          * Currently used for running artifact transformations in buildscript blocks.
          */
         WorkExecutor<UpToDateResult> createWorkExecutor(
-            TimeoutHandler timeoutHandler, ListenerManager listenerManager
+            TimeoutHandler timeoutHandler,
+            ListenerManager listenerManager,
+            BuildInvocationScopeId buildInvocationScopeId
         ) {
             OutputChangeListener outputChangeListener = listenerManager.getBroadcaster(OutputChangeListener.class);
             OutputFilesRepository noopOutputFilesRepository = new OutputFilesRepository() {
@@ -207,13 +209,11 @@ public class DefaultDependencyManagementServices implements DependencyManagement
                 public void recordOutputs(Iterable<? extends FileSystemSnapshot> outputFileFingerprints) {
                 }
             };
-            // TODO: Figure out how to get rid of origin scope id in snapshot outputs step
-            UniqueId fixedUniqueId = UniqueId.from("dhwwyv4tqrd43cbxmdsf24wquu");
             return new DefaultWorkExecutor<UpToDateResult>(
                 new SkipUpToDateStep<Context>(
                     new StoreSnapshotsStep<Context>(noopOutputFilesRepository,
                         new PrepareCachingStep<Context, CurrentSnapshotResult>(
-                            new SnapshotOutputStep<Context>(fixedUniqueId,
+                            new SnapshotOutputStep<Context>(buildInvocationScopeId.getId(),
                                 new CreateOutputsStep<Context, Result>(
                                     new CatchExceptionStep<Context>(
                                         new TimeoutStep<Context>(timeoutHandler,
