@@ -122,9 +122,9 @@ public class Main {
 
         comparison.printResultsAndConfidence();
 
-//        if (1 - new MannWhitneyUTest().mannWhitneyUTest(results.get(0).toDoubleArray(), results.get(1).toDoubleArray()) > 0.999) {
-//            throw new IllegalStateException("Stop!");
-//        }
+        if (1 - new MannWhitneyUTest().mannWhitneyUTest(results.get(0).toDoubleArray(), results.get(1).toDoubleArray()) > 0.99) {
+            throw new IllegalStateException("Stop!");
+        }
 
         return comparison;
     }
@@ -161,13 +161,27 @@ public class Main {
     private static ExecutionResult measureOnce(int index, String version, List<String> args, String daemonPid) {
         File workingDir = getExpProject(version);
 
+        jfrStart(daemonPid, version, index);
+
         long t0 = System.currentTimeMillis();
         String output = runGetStderr(workingDir, args);
         long time = System.currentTimeMillis() - t0;
 
-        String cpuTemp = runGetStdout(workingDir, Arrays.asList(cpuTempCmd));
+        jfrStop(daemonPid, version, index);
 
-        return new ExecutionResult(output + "\n" + cpuTemp, time);
+        return new ExecutionResult(output, time);
+    }
+
+    private static void jfrStart(String pid, String version, int index) {
+        run(getExpProject(version), jcmdPath, pid, "JFR.start", "name=" + version + "_" + (index + 1), "settings=" + jfcPath);
+    }
+
+    private static String getJfrPath(String version, int iteration) {
+        return new File(getExpProject(version), version + "_" + iteration + ".jfr").getAbsolutePath();
+    }
+
+    private static void jfrStop(String pid, String version, int index) {
+        run(getExpProject(version), jcmdPath, pid, "JFR.stop", "name=" + version + "_" + (index + 1), "filename=" + getJfrPath(version, index));
     }
 
     private static class ExecutionResult {
@@ -190,7 +204,7 @@ public class Main {
             "--gradle-user-home",
             getGradleUserHome(version).getAbsolutePath(),
             "--stacktrace",
-            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m",
+            "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints",
             task
         );
     }
