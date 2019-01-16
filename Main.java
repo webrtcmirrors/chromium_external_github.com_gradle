@@ -177,7 +177,7 @@ public class Main {
     }
 
     private static String getJfrPath(String version, int iteration) {
-        return new File(getExpProject(version), version + "_" + iteration + ".jfr").getAbsolutePath();
+        return new File(getExpProject(version), version + "_" + (iteration + 1) + ".jfr").getAbsolutePath();
     }
 
     private static void jfrStop(String pid, String version, int index) {
