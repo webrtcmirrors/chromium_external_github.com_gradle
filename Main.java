@@ -32,13 +32,9 @@ public class Main {
 
     static {
         gradleBinary.put("baseline1",
-            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000/bin/gradle");
+            projectDirPath + "/intTestHomeDir/previousVersion/5.3-20190119000045+0000/gradle-5.3-20190119000045+0000/bin/gradle");
         gradleBinary.put("baseline2",
-            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-2/bin/gradle");
-        gradleBinary.put("baseline3",
-            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-3/bin/gradle");
-        gradleBinary.put("baseline4",
-            projectDirPath + "/intTestHomeDir/previousVersion/5.2-20181211000030+0000/gradle-5.2-20181211000030+0000-4/bin/gradle");
+            projectDirPath + "/intTestHomeDir/previousVersion/5.3-20190119000045+0000/gradle-5.3-20190119000045+0000-2/bin/gradle");
         gradleBinary.put("current1",
             projectDirPath + "/subprojects/performance/build/integ test/bin/gradle");
         gradleBinary.put("current2",
@@ -166,40 +162,17 @@ public class Main {
     }
 
     private static long measureOnce(int index, String version, List<String> args) {
-        String pid = jfrEnabled() ? readFile(getPidFile(version)) : null;
         File workingDir = getExpProject(version);
-
-        if (jfrEnabled()) {
-            run(workingDir, jcmdPath, pid, "JFR.start", "name=" + version + "_" + index, "settings=" + jfcPath);
-        }
 
         long t0 = System.currentTimeMillis();
         run(workingDir, args);
         long result = System.currentTimeMillis() - t0;
 
-        if (jfrEnabled()) {
-            run(workingDir, jcmdPath, pid, "JFR.stop", "name=" + version + "_" + index, "filename=" + getJfrPath(version, index));
-        }
-
         return result;
     }
 
-    private static boolean jfrEnabled() {
-        return Boolean.parseBoolean(System.getProperty("jfrEnabled"));
-    }
-
-    private static boolean perfEnabled() {
-        return Boolean.parseBoolean(System.getProperty("perfEnabled"));
-    }
-
-    private static String getJfrPath(String version, int iteration) {
-        return new File(getExpProject(version), version + "_" + iteration + ".jfr").getAbsolutePath();
-    }
-
     private static List<String> getExpArgs(String version, String task) {
-        String jvmArgs = jfrEnabled()
-            ? "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=stackdepth=1024 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer"
-            : "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m -XX:+PreserveFramePointer";
+        String jvmArgs = "-Dorg.gradle.jvmargs=-Xms1536m -Xmx1536m";
 
         return Arrays.asList(
             gradleBinary.get(version),
@@ -212,18 +185,7 @@ public class Main {
     }
 
     private static List<String> getWarmupExpArgs(String version, String task) {
-        if (jfrEnabled()) {
-            List<String> args = new ArrayList<>(getExpArgs(version, task));
-            args.add("--init-script");
-            args.add(projectDirPath + "/pid-instrumentation.gradle");
-            return args;
-        } else {
-            return getExpArgs(version, task);
-        }
-    }
-
-    private static File getPidFile(String version) {
-        return new File(getExpProject(version), "pid");
+        return getExpArgs(version, task);
     }
 
     private static File getGradleUserHome(String version) {
@@ -238,11 +200,8 @@ public class Main {
         File workingDir = getExpProject(version);
         int warmups = Integer.parseInt(System.getProperty("warmUp"));
 
-        Map<String, String> env = new HashMap<>();
-        env.put("PID_FILE_PATH", getPidFile(version).getAbsolutePath());
-
         IntStream.range(0, warmups).forEach(i -> {
-            run(workingDir, env, args);
+            run(workingDir, args);
         });
     }
 
