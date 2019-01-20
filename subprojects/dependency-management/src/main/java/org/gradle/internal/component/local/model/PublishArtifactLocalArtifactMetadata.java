@@ -26,79 +26,93 @@ import org.gradle.internal.component.model.IvyArtifactName;
 
 import java.io.File;
 
-public class PublishArtifactLocalArtifactMetadata implements LocalComponentArtifactMetadata, ComponentArtifactIdentifier, DisplayName {
-    private final ComponentIdentifier componentIdentifier;
+public class PublishArtifactLocalArtifactMetadata implements LocalComponentArtifactMetadata {
+    private final ArtifactId id;
     private final PublishArtifact publishArtifact;
-    private final DefaultIvyArtifactName ivyArtifactName;
 
     public PublishArtifactLocalArtifactMetadata(ComponentIdentifier componentIdentifier, PublishArtifact publishArtifact) {
-        this.componentIdentifier = componentIdentifier;
+        this.id = new ArtifactId(componentIdentifier, DefaultIvyArtifactName.forPublishArtifact(publishArtifact), publishArtifact.getFile());
         this.publishArtifact = publishArtifact;
-        ivyArtifactName = DefaultIvyArtifactName.forPublishArtifact(publishArtifact);
-    }
-
-    public String getDisplayName() {
-        StringBuilder result = new StringBuilder();
-        result.append(getName());
-        result.append(" (")
-              .append(componentIdentifier.getDisplayName())
-              .append(")");
-        return result.toString();
-    }
-
-    @Override
-    public String getCapitalizedDisplayName() {
-        return getDisplayName();
     }
 
     @Override
     public String toString() {
-        return getDisplayName();
-    }
-
-    public ComponentIdentifier getComponentIdentifier() {
-        return componentIdentifier;
-    }
-
-    @Override
-    public File getFile() {
-        return publishArtifact.getFile();
+        return id.getDisplayName();
     }
 
     @Override
     public ComponentArtifactIdentifier getId() {
-        return this;
+        return id;
     }
 
     @Override
     public ComponentIdentifier getComponentId() {
-        return componentIdentifier;
+        return id.componentIdentifier;
     }
 
     @Override
     public IvyArtifactName getName() {
-        return ivyArtifactName;
+        return id.ivyArtifactName;
     }
 
     @Override
-    public int hashCode() {
-        return componentIdentifier.hashCode() ^ publishArtifact.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj == null || obj.getClass() != getClass()) {
-            return false;
-        }
-        PublishArtifactLocalArtifactMetadata other = (PublishArtifactLocalArtifactMetadata) obj;
-        return other.componentIdentifier.equals(componentIdentifier) && other.publishArtifact.equals(publishArtifact);
+    public File getFile() {
+        return id.artifactFile;
     }
 
     @Override
     public TaskDependency getBuildDependencies() {
         return publishArtifact.getBuildDependencies();
+    }
+
+    private static class ArtifactId implements ComponentArtifactIdentifier, DisplayName {
+        private final ComponentIdentifier componentIdentifier;
+        private final DefaultIvyArtifactName ivyArtifactName;
+        private final File artifactFile;
+
+        public ArtifactId(ComponentIdentifier componentIdentifier, DefaultIvyArtifactName ivyArtifactName, File artifactFile) {
+            this.componentIdentifier = componentIdentifier;
+            this.ivyArtifactName = ivyArtifactName;
+            this.artifactFile = artifactFile;
+        }
+
+        @Override
+        public ComponentIdentifier getComponentIdentifier() {
+            return componentIdentifier;
+        }
+
+        public String getDisplayName() {
+            StringBuilder result = new StringBuilder();
+            result.append(ivyArtifactName);
+            result.append(" (")
+                    .append(componentIdentifier.getDisplayName())
+                    .append(")");
+            return result.toString();
+        }
+
+        @Override
+        public String getCapitalizedDisplayName() {
+            return getDisplayName();
+        }
+
+
+        @Override
+        public int hashCode() {
+            return componentIdentifier.hashCode() ^ ivyArtifactName.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (obj == null || obj.getClass() != getClass()) {
+                return false;
+            }
+            ArtifactId other = (ArtifactId) obj;
+            return other.componentIdentifier.equals(componentIdentifier)
+                    && other.ivyArtifactName.equals(ivyArtifactName)
+                    && other.artifactFile.equals(artifactFile);
+        }
     }
 }

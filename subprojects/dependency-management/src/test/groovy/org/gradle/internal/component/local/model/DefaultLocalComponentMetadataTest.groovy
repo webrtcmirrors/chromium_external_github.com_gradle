@@ -157,7 +157,7 @@ class DefaultLocalComponentMetadataTest extends Specification {
 
         then:
         metadata.getConfiguration("conf1").artifacts.size() == 1
-        metadata.getConfiguration("conf1").artifacts == metadata.getConfiguration("conf2").artifacts
+        metadata.getConfiguration("conf1").artifacts*.id == metadata.getConfiguration("conf2").artifacts*.id
     }
 
     def "can lookup an artifact given an Ivy artifact"() {
