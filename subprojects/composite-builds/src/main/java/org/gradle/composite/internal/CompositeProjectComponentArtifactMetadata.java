@@ -26,55 +26,40 @@ import org.gradle.internal.component.model.IvyArtifactName;
 
 import java.io.File;
 
-class CompositeProjectComponentArtifactMetadata implements LocalComponentArtifactMetadata, ComponentArtifactIdentifier, DisplayName {
-    private final ProjectComponentIdentifier componentIdentifier;
-    private final LocalComponentArtifactMetadata delegate;
+class CompositeProjectComponentArtifactMetadata implements LocalComponentArtifactMetadata {
+    private final ArtifactId id;
+    private final LocalComponentArtifactMetadata delegateMetadata;
     private final File file;
 
-    public CompositeProjectComponentArtifactMetadata(ProjectComponentIdentifier componentIdentifier, LocalComponentArtifactMetadata delegate, File file) {
-        this.componentIdentifier = componentIdentifier;
-        this.delegate = delegate;
+    public CompositeProjectComponentArtifactMetadata(ProjectComponentIdentifier componentIdentifier, LocalComponentArtifactMetadata delegateMetadata, File file) {
+        this.id = new ArtifactId(componentIdentifier, delegateMetadata.getId());
+        this.delegateMetadata = delegateMetadata;
         this.file = file;
     }
 
     @Override
     public ProjectComponentIdentifier getComponentId() {
-        return componentIdentifier;
+        return id.getComponentIdentifier();
     }
 
     @Override
     public ComponentArtifactIdentifier getId() {
-        return this;
+        return id;
     }
 
     @Override
     public IvyArtifactName getName() {
-        return delegate.getName();
+        return delegateMetadata.getName();
     }
 
     @Override
-    public ProjectComponentIdentifier getComponentIdentifier() {
-        return componentIdentifier;
-    }
-
-    @Override
-    public String getDisplayName() {
-        return delegate.getId().getDisplayName();
-    }
-
-    @Override
-    public String getCapitalizedDisplayName() {
-        return Describables.of(delegate.getId()).getCapitalizedDisplayName();
+    public TaskDependency getBuildDependencies() {
+        return delegateMetadata.getBuildDependencies();
     }
 
     @Override
     public File getFile() {
         return file;
-    }
-
-    @Override
-    public TaskDependency getBuildDependencies() {
-        return delegate.getBuildDependencies();
     }
 
     @Override
@@ -87,11 +72,55 @@ class CompositeProjectComponentArtifactMetadata implements LocalComponentArtifac
         }
 
         CompositeProjectComponentArtifactMetadata that = (CompositeProjectComponentArtifactMetadata) o;
-        return delegate.equals(that.delegate);
+        return id.equals(that.id);
     }
 
     @Override
     public int hashCode() {
-        return delegate.hashCode();
+        return id.hashCode();
+    }
+
+    private static class ArtifactId implements ComponentArtifactIdentifier, DisplayName {
+        private final ProjectComponentIdentifier componentIdentifier;
+        private final ComponentArtifactIdentifier delegateId;
+
+        private ArtifactId(ProjectComponentIdentifier componentIdentifier, ComponentArtifactIdentifier delegateId) {
+            this.componentIdentifier = componentIdentifier;
+            this.delegateId = delegateId;
+        }
+
+        @Override
+        public ProjectComponentIdentifier getComponentIdentifier() {
+            return componentIdentifier;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return delegateId.getDisplayName();
+        }
+
+        @Override
+        public String getCapitalizedDisplayName() {
+            return Describables.of(delegateId).getCapitalizedDisplayName();
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof ArtifactId)) {
+                return false;
+            }
+
+            ArtifactId that = (ArtifactId) o;
+            return delegateId.equals(that.delegateId);
+        }
+
+        @Override
+        public int hashCode() {
+            return delegateId.hashCode();
+        }
     }
 }
