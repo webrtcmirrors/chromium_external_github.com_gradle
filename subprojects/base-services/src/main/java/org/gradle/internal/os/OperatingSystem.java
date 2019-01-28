@@ -25,8 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static org.gradle.internal.FileUtils.withExtension;
-
 public abstract class OperatingSystem {
     public static final Windows WINDOWS = new Windows();
     public static final MacOs MAC_OS = new MacOs();
@@ -246,7 +244,7 @@ public abstract class OperatingSystem {
 
         @Override
         public String getStaticLibraryName(String libraryName) {
-            return withExtension(libraryName, ".lib");
+            return libraryName + ".lib";
         }
 
         @Override

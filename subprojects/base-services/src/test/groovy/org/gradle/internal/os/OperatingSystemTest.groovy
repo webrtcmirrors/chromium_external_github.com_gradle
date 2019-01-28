@@ -135,14 +135,14 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.staticLibrarySuffix == ".lib"
-        os.getStaticLibraryName("a.lib") == "a.lib"
-        os.getStaticLibraryName("a.LIB") == "a.LIB"
+        os.getStaticLibraryName("a.lib") == "a.lib.lib"
+        os.getStaticLibraryName("a.LIB") == "a.LIB.lib"
         os.getStaticLibraryName("a") == "a.lib"
-        os.getStaticLibraryName("a.dll") == "a.lib"
-        os.getStaticLibraryName("any/path/to/filesystem/base-name") == "any/path/to/filesystem/base-name.lib"
-        os.getStaticLibraryName("any/path/to/filesystem/base.name") == "any/path/to/filesystem/base.name.lib"
+        os.getStaticLibraryName("a.dll") == "a.dll.lib"
         os.getStaticLibraryName("a.b/c") == "a.b/c.lib"
         os.getStaticLibraryName("a.b\\c") == "a.b\\c.lib"
+        os.getStaticLibraryName("a/b/c.d") == "a/b/c.d.lib"
+        os.getStaticLibraryName("a/b/c-d") == "a/b/c-d.lib"
     }
 
     def "windows searches for executable in path"() {
