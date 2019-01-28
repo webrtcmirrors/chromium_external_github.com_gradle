@@ -255,7 +255,12 @@ class OperatingSystemTest extends Specification {
         expect:
         os.executableSuffix == ""
         os.getExecutableName("a.sh") == "a.sh"
+        os.getExecutableName("a.SH") == "a.SH"
         os.getExecutableName("a") == "a"
+        os.getExecutableName("a.b/c") == "a.b/c"
+        os.getExecutableName("a.b\\c") == "a.b\\c"
+        os.getExecutableName("a/b/c.d") == "a/b/c.d"
+        os.getExecutableName("a/b/c-d") == "a/b/c-d"
     }
 
     def "UNIX transforms shared library names"() {
