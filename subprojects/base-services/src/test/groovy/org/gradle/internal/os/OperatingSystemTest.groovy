@@ -109,24 +109,25 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.sharedLibrarySuffix == ".dll"
-        os.linkLibrarySuffix == ".lib"
-        os.getSharedLibraryName("a.dll") == "a.dll"
-        os.getSharedLibraryName("a.DLL") == "a.DLL"
+        os.getSharedLibraryName("a.dll") == "a.dll.dll"
+        os.getSharedLibraryName("a.DLL") == "a.DLL.dll"
         os.getSharedLibraryName("a") == "a.dll"
-        os.getSharedLibraryName("a.lib") == "a.dll"
+        os.getSharedLibraryName("a.lib") == "a.lib.dll"
         os.getSharedLibraryName("a.b/c") == "a.b/c.dll"
-        os.getSharedLibraryName("abc.def/a") == "abc.def/a.dll"
-        os.getSharedLibraryName("abc.def/ghi.jkl") == "abc.def/ghi.jkl.dll"
-        os.getSharedLibraryName("any/path/to/filesystem/base.name") == "any/path/to/filesystem/base.name.dll"
-        os.getSharedLibraryName("any/path/to/filesystem/base-name") == "any/path/to/filesystem/base-name.dll"
         os.getSharedLibraryName("a.b\\c") == "a.b\\c.dll"
-        os.getSharedLibraryName("a.b\\c") == "a.b\\c.dll"
+        os.getSharedLibraryName("a/b/c.d") == "a/b/c.d.dll"
+        os.getSharedLibraryName("a/b/c-d") == "a/b/c-d.dll"
+
+        and:
+        os.linkLibrarySuffix == ".lib"
+        os.getLinkLibraryName("a.lib") == "a.lib.lib"
+        os.getLinkLibraryName("a.LIB") == "a.LIB.lib"
         os.getLinkLibraryName("a") == "a.lib"
-        os.getLinkLibraryName("a.lib") == "a.lib"
-        os.getLinkLibraryName("abc.def") == "abc.def.lib"
-        os.getLinkLibraryName("abc/def") == "abc/def.lib"
-        os.getLinkLibraryName("abc/def/base-name") == "abc/def/base-name.lib"
-        os.getLinkLibraryName("abc/def/base.name") == "abc/def/base.name.lib"
+        os.getLinkLibraryName("a.dll") == "a.dll.lib"
+        os.getLinkLibraryName("a.b/c") == "a.b/c.lib"
+        os.getLinkLibraryName("a.b\\c") == "a.b\\c.lib"
+        os.getLinkLibraryName("a/b/c.d") == "a/b/c.d.lib"
+        os.getLinkLibraryName("a/b/c-d") == "a/b/c-d.lib"
     }
 
     def "windows transforms static library names"() {

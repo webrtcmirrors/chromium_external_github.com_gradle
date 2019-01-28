@@ -226,7 +226,7 @@ public abstract class OperatingSystem {
 
         @Override
         public String getSharedLibraryName(String libraryPath) {
-            return withExtension(libraryPath, ".dll");
+            return libraryPath + ".dll";
         }
 
         @Override
@@ -236,7 +236,7 @@ public abstract class OperatingSystem {
 
         @Override
         public String getLinkLibraryName(String libraryPath) {
-            return withExtension(libraryPath, ".lib");
+            return libraryPath + ".lib";
         }
 
         @Override
