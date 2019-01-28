@@ -268,14 +268,27 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.sharedLibrarySuffix == ".so"
-        os.linkLibrarySuffix == ".so"
-        os.getSharedLibraryName("a.so") == "a.so"
-        os.getSharedLibraryName("liba.so") == "liba.so"
+        os.getSharedLibraryName("a.so") == "liba.so.so"
+        os.getSharedLibraryName("a.SO") == "liba.SO.so"
         os.getSharedLibraryName("a") == "liba.so"
-        os.getSharedLibraryName("lib1") == "liblib1.so"
-        os.getSharedLibraryName("path/liba.so") == "path/liba.so"
-        os.getSharedLibraryName("path/a") == "path/liba.so"
+        os.getSharedLibraryName("a.a") == "liba.a.so"
+        os.getSharedLibraryName("a.b/c") == "a.b/libc.so"
+        os.getSharedLibraryName("a/b/c.d") == "a/b/libc.d.so"
+        os.getSharedLibraryName("a/b/c-d") == "a/b/libc-d.so"
+        os.getSharedLibraryName("liba.so") == "libliba.so.so"
+        os.getSharedLibraryName("liba") == "libliba.so"
+
+        and:
+        os.linkLibrarySuffix == ".so"
+        os.getLinkLibraryName("a.so") == "liba.so.so"
+        os.getLinkLibraryName("a.SO") == "liba.SO.so"
         os.getLinkLibraryName("a") == "liba.so"
+        os.getLinkLibraryName("a.a") == "liba.a.so"
+        os.getLinkLibraryName("a.b/c") == "a.b/libc.so"
+        os.getLinkLibraryName("a/b/c.d") == "a/b/libc.d.so"
+        os.getLinkLibraryName("a/b/c-d") == "a/b/libc-d.so"
+        os.getLinkLibraryName("liba.so") == "libliba.so.so"
+        os.getLinkLibraryName("liba") == "libliba.so"
     }
 
     def "UNIX transforms static library names"() {

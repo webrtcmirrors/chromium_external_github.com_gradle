@@ -304,9 +304,6 @@ public abstract class OperatingSystem {
         }
 
         private String getLibraryName(String libraryName, String suffix) {
-            if (libraryName.endsWith(suffix)) {
-                return libraryName;
-            }
             int pos = libraryName.lastIndexOf('/');
             if (pos >= 0) {
                 return libraryName.substring(0, pos + 1) + "lib" + libraryName.substring(pos + 1) + suffix;
