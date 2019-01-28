@@ -359,14 +359,27 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.sharedLibrarySuffix == ".dylib"
-        os.linkLibrarySuffix == ".dylib"
-        os.getSharedLibraryName("a.dylib") == "a.dylib"
-        os.getSharedLibraryName("liba.dylib") == "liba.dylib"
+        os.getSharedLibraryName("a.dylib") == "liba.dylib.dylib"
+        os.getSharedLibraryName("a.DYLIB") == "liba.DYLIB.dylib"
         os.getSharedLibraryName("a") == "liba.dylib"
-        os.getSharedLibraryName("lib1") == "liblib1.dylib"
-        os.getSharedLibraryName("path/liba.dylib") == "path/liba.dylib"
-        os.getSharedLibraryName("path/a") == "path/liba.dylib"
+        os.getSharedLibraryName("a.a") == "liba.a.dylib"
+        os.getSharedLibraryName("a.b/c") == "a.b/libc.dylib"
+        os.getSharedLibraryName("a/b/c.d") == "a/b/libc.d.dylib"
+        os.getSharedLibraryName("a/b/c-d") == "a/b/libc-d.dylib"
+        os.getSharedLibraryName("liba.dylib") == "libliba.dylib.dylib"
+        os.getSharedLibraryName("liba") == "libliba.dylib"
+
+        and:
+        os.linkLibrarySuffix == ".dylib"
+        os.getLinkLibraryName("a.dylib") == "liba.dylib.dylib"
+        os.getLinkLibraryName("a.DYLIB") == "liba.DYLIB.dylib"
         os.getLinkLibraryName("a") == "liba.dylib"
+        os.getLinkLibraryName("a.a") == "liba.a.dylib"
+        os.getLinkLibraryName("a.b/c") == "a.b/libc.dylib"
+        os.getLinkLibraryName("a/b/c.d") == "a/b/libc.d.dylib"
+        os.getLinkLibraryName("a/b/c-d") == "a/b/libc-d.dylib"
+        os.getLinkLibraryName("liba.dylib") == "libliba.dylib.dylib"
+        os.getLinkLibraryName("liba") == "libliba.dylib"
     }
 
     private static boolean resetOperatingSystemClassStaticFields() {
