@@ -240,7 +240,13 @@ class OperatingSystemTest extends Specification {
         expect:
         os.scriptSuffix == ""
         os.getScriptName("a.sh") == "a.sh"
+        os.getScriptName("a.SH") == "a.SH"
         os.getScriptName("a") == "a"
+        os.getScriptName("a.b/c") == "a.b/c"
+        os.getScriptName("a.b\\c") == "a.b\\c"
+        os.getScriptName("a/b/c.d") == "a/b/c.d"
+        os.getScriptName("a/b/c-d") == "a/b/c-d"
+
     }
 
     def "UNIX does not transforms executable names"() {
