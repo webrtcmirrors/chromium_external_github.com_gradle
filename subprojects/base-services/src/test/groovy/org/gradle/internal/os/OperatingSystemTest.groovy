@@ -79,14 +79,14 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.scriptSuffix == ".bat"
-        os.getScriptName("a.bat") == "a.bat"
-        os.getScriptName("a.BAT") == "a.BAT"
+        os.getScriptName("a.bat") == "a.bat.bat"
+        os.getScriptName("a.BAT") == "a.BAT.bat"
         os.getScriptName("a") == "a.bat"
-        os.getScriptName("a.exe") == "a.bat"
+        os.getScriptName("a.exe") == "a.exe.bat"
         os.getScriptName("a.b/c") == "a.b/c.bat"
         os.getScriptName("a.b\\c") == "a.b\\c.bat"
-        os.getScriptName("any/path/to/filesystem/base.name") == "any/path/to/filesystem/base.name.bat"
-        os.getScriptName("any/path/to/filesystem/base-name") == "any/path/to/filesystem/base-name.bat"
+        os.getScriptName("a/b/c.d") == "a/b/c.d.bat"
+        os.getScriptName("a/b/c-d") == "a/b/c-d.bat"
     }
 
     def "windows transforms executable names"() {

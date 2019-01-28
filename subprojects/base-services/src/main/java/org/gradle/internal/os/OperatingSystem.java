@@ -201,7 +201,7 @@ public abstract class OperatingSystem {
 
         @Override
         public String getScriptName(String scriptPath) {
-            return withExtension(scriptPath, ".bat");
+            return scriptPath + ".bat";
         }
 
         @Override
