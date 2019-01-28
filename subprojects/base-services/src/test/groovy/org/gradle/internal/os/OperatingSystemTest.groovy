@@ -296,12 +296,15 @@ class OperatingSystemTest extends Specification {
 
         expect:
         os.staticLibrarySuffix == ".a"
-        os.getStaticLibraryName("a.a") == "a.a"
-        os.getStaticLibraryName("liba.a") == "liba.a"
+        os.getStaticLibraryName("a.a") == "liba.a.a"
+        os.getStaticLibraryName("a.A") == "liba.A.a"
         os.getStaticLibraryName("a") == "liba.a"
-        os.getStaticLibraryName("lib1") == "liblib1.a"
-        os.getStaticLibraryName("path/liba.a") == "path/liba.a"
-        os.getStaticLibraryName("path/a") == "path/liba.a"
+        os.getStaticLibraryName("a.so") == "liba.so.a"
+        os.getStaticLibraryName("a.b/c") == "a.b/libc.a"
+        os.getStaticLibraryName("a/b/c.d") == "a/b/libc.d.a"
+        os.getStaticLibraryName("a/b/c-d") == "a/b/libc-d.a"
+        os.getStaticLibraryName("liba.a") == "libliba.a.a"
+        os.getStaticLibraryName("liba") == "libliba.a"
     }
 
     def "UNIX searches for executable in path"() {
