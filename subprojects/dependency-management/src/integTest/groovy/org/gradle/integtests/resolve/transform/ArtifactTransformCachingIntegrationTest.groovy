@@ -718,6 +718,134 @@ class ArtifactTransformCachingIntegrationTest extends AbstractHttpDependencyReso
         output.count("Transformed") == 0
     }
 
+
+    def "can pass a file parameter to the transform action"() {
+        def m1 = mavenRepo.module("test", "test", "1.3").publish()
+        m1.artifactFile.text = "1234"
+        def m2 = mavenRepo.module("test", "test2", "2.3").publish()
+        m2.artifactFile.text = "12"
+
+        given:
+        buildFile.text = """
+            def usage = Attribute.of('usage', String)
+            def artifactType = Attribute.of('artifactType', String)
+            def extraAttribute = Attribute.of('extra', String)
+                
+            allprojects {
+            
+                dependencies {
+                    attributesSchema {
+                        attribute(usage)
+                    }
+                }
+                configurations {
+                    compile {
+                        attributes { attribute usage, 'api' }
+                    }
+                }
+            }
+        """
+        buildFile << """
+            @TransformAction(FileSizerAction)
+            interface FileSizer {
+                @PathSensitive(PathSensitivity.NAME_ONLY)
+                @InputFiles
+                ConfigurableFileCollection getAdditionalInputs()
+            }
+            
+            abstract class FileSizerAction implements ArtifactTransformAction {
+                
+                @TransformParameters
+                abstract FileSizer getParameters()                
+
+                FileSizerAction() {
+                    println "Creating FileSizer"
+                }
+                
+                @PathSensitive(PathSensitivity.NONE)
+                @InputFiles
+                @PrimaryInput
+                abstract File getPrimaryInput()
+                
+                @Override
+                void transform(ArtifactTransformOutputs outputs) {
+                    File output = outputs.registerOutput(primaryInput.name + ".txt")
+                    File workspace = output.parentFile
+                    assert workspace.directory && workspace.list().length == 0
+                    println "Transforming \${primaryInput.name} to \${output.name}"
+                    output.text = String.valueOf(primaryInput.length())
+                    additionalInputs.each {
+                        output << '\\n' << "\${it.name}:\${it.length()}"
+                    }
+                    
+                }
+            }
+
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            dependencies {
+                compile 'test:test:1.3'
+                compile 'test:test2:2.3'
+            }
+
+            dependencies {
+                registerTransform(FileSizer) {
+                    from.attribute(artifactType, 'jar')
+                    to.attribute(artifactType, 'size')
+                    parameters {
+                        additionalInputs.from(files("my-input.txt"))
+                    }
+                }
+            }
+            task resolve(type: Copy) {
+                def artifacts = configurations.compile.incoming.artifactView {
+                    attributes { it.attribute(artifactType, 'size') }
+                    if (project.hasProperty("lenient")) {
+                        lenient(true)
+                    }
+                }.artifacts
+                from artifacts.artifactFiles
+                into "\${buildDir}/libs"
+                doLast {
+                    println "files: " + artifacts.collect { it.file.name }
+                    println "ids: " + artifacts.collect { it.id }
+                    println "components: " + artifacts.collect { it.id.componentIdentifier }
+                    println "variants: " + artifacts.collect { it.variant.attributes }
+                }
+            }
+        """
+
+        when:
+        run "resolve"
+
+        then:
+        outputContains("variants: [{artifactType=size}, {artifactType=size}]")
+        // transformed outputs should belong to same component as original
+        outputContains("ids: [test-1.3.jar.txt (test:test:1.3), test2-2.3.jar.txt (test:test2:2.3)]")
+        outputContains("components: [test:test:1.3, test:test2:2.3]")
+        file("build/libs").assertHasDescendants("test-1.3.jar.txt", "test2-2.3.jar.txt")
+        file("build/libs/test-1.3.jar.txt").text == "4\nmy-input.txt:0"
+        file("build/libs/test2-2.3.jar.txt").text == "2\nmy-input.txt:0"
+
+        and:
+        output.count("Transforming") == 2
+        output.count("Transforming test-1.3.jar to test-1.3.jar.txt") == 1
+        output.count("Transforming test2-2.3.jar to test2-2.3.jar.txt") == 1
+
+        when:
+        run "resolve"
+
+        then:
+        output.count("Transforming") == 0
+
+        when:
+        file("my-input.txt").text = "changed"
+        run "resolve"
+        then:
+        output.count("Transforming") == 2
+    }
+
     @RequiredFeatures(@RequiredFeature(feature = ExperimentalIncrementalArtifactTransformationsRunner.INCREMENTAL_ARTIFACT_TRANSFORMATIONS, value = "true"))
     def "transform is executed in different workspace for different file produced in chain"() {
         given:
