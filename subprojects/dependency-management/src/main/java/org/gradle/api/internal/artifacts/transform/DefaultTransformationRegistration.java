@@ -70,11 +70,9 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
             throw new VariantTransformConfigurationException(String.format("Could not snapshot parameters values for transform %s: %s", ModelType.of(implementation).getDisplayName(), parameterObject), e);
         }
 
-        if (parameterObject != null) {
-            fingerprintParameters(valueSnapshotter, propertyWalker, hasher, isolatableParameterObject.isolate());
-        }
+        ImmutableSortedMap<String, FileInputParameter> inputFiles = parameterObject == null ? ImmutableSortedMap.of() : fingerprintParameters(valueSnapshotter, propertyWalker, hasher, isolatableParameterObject.isolate());
 
-        Transformer transformer = new DefaultTransformer(implementation, isolatableParameterObject, hasher.hash(), instantiatorFactory, from);
+        Transformer transformer = new DefaultTransformer(implementation, isolatableParameterObject, hasher.hash(), instantiatorFactory, from, inputFiles, propertyWalker);
 
         return new DefaultTransformationRegistration(from, to, new TransformationStep(transformer, transformerInvoker));
     }
@@ -101,13 +99,14 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
         hasher.putHash(classLoaderHierarchyHasher.getClassLoaderHash(implementation.getClassLoader()));
     }
 
-    private static void fingerprintParameters(
+    private static ImmutableSortedMap<String, FileInputParameter> fingerprintParameters(
         ValueSnapshotter valueSnapshotter,
         PropertyWalker propertyWalker,
         Hasher hasher,
         Object parameterObject
     ) {
         ImmutableSortedMap.Builder<String, ValueSnapshot> inputParameterFingerprintsBuilder = ImmutableSortedMap.naturalOrder();
+        ImmutableSortedMap.Builder<String, FileInputParameter> inputFileParameterFingerprintsBuilder = ImmutableSortedMap.naturalOrder();
         List<String> validationMessages = new ArrayList<>();
         DefaultParameterValidationContext validationContext = new DefaultParameterValidationContext(validationMessages);
         propertyWalker.visitProperties(parameterObject, validationContext, new PropertyVisitor.Adapter() {
@@ -137,7 +136,7 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
 
             @Override
             public void visitInputFileProperty(String propertyName, boolean optional, boolean skipWhenEmpty, Class<? extends FileNormalizer> fileNormalizer, PropertyValue value, InputFilePropertyType filePropertyType) {
-                throw new UnsupportedOperationException("File input properties are not yet supported");
+                inputFileParameterFingerprintsBuilder.put(propertyName, new FileInputParameter(value, fileNormalizer, filePropertyType));
             }
         });
 
@@ -152,6 +151,7 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
             hasher.putString(entry.getKey());
             entry.getValue().appendToHasher(hasher);
         }
+        return inputFileParameterFingerprintsBuilder.build();
     }
 
     private DefaultTransformationRegistration(ImmutableAttributes from, ImmutableAttributes to, TransformationStep transformationStep) {
@@ -173,5 +173,29 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
     @Override
     public TransformationStep getTransformationStep() {
         return transformationStep;
+    }
+
+    public static class FileInputParameter {
+        private final PropertyValue value;
+        private final Class<? extends FileNormalizer> fileNormalizer;
+        private final InputFilePropertyType filePropertyType;
+
+        public FileInputParameter(PropertyValue value, Class<? extends FileNormalizer> fileNormalizer, InputFilePropertyType filePropertyType) {
+            this.value = value;
+            this.fileNormalizer = fileNormalizer;
+            this.filePropertyType = filePropertyType;
+        }
+
+        public PropertyValue getValue() {
+            return value;
+        }
+
+        public Class<? extends FileNormalizer> getFileNormalizer() {
+            return fileNormalizer;
+        }
+
+        public InputFilePropertyType getFilePropertyType() {
+            return filePropertyType;
+        }
     }
 }

@@ -18,13 +18,24 @@ package org.gradle.api.internal.artifacts.transform;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.reflect.TypeToken;
 import org.gradle.api.artifacts.transform.ArtifactTransformAction;
 import org.gradle.api.artifacts.transform.PrimaryInput;
 import org.gradle.api.artifacts.transform.PrimaryInputDependencies;
 import org.gradle.api.artifacts.transform.TransformParameters;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
+import org.gradle.api.internal.tasks.properties.InputFilePropertyType;
+import org.gradle.api.internal.tasks.properties.OutputFilePropertyType;
+import org.gradle.api.internal.tasks.properties.ParameterValidationContext;
+import org.gradle.api.internal.tasks.properties.PropertyValue;
+import org.gradle.api.internal.tasks.properties.PropertyVisitor;
+import org.gradle.api.internal.tasks.properties.PropertyWalker;
 import org.gradle.api.reflect.InjectionPointQualifier;
+import org.gradle.api.tasks.FileNormalizer;
+import org.gradle.internal.file.PathToFileResolver;
+import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry;
 import org.gradle.internal.hash.HashCode;
 import org.gradle.internal.instantiation.InstanceFactory;
 import org.gradle.internal.instantiation.InstantiatorFactory;
@@ -37,16 +48,21 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.Map;
 
 public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAction> {
 
     private final Isolatable<?> parameterObject;
+    private final ImmutableSortedMap<String, DefaultTransformationRegistration.FileInputParameter> inputFiles;
+    private final PropertyWalker propertyWalker;
     private final boolean requiresDependencies;
     private final InstanceFactory<? extends ArtifactTransformAction> instanceFactory;
 
-    public DefaultTransformer(Class<? extends ArtifactTransformAction> implementationClass, Isolatable<?> parameterObject, HashCode inputsHash, InstantiatorFactory instantiatorFactory, ImmutableAttributes fromAttributes) {
+    public DefaultTransformer(Class<? extends ArtifactTransformAction> implementationClass, Isolatable<?> parameterObject, HashCode inputsHash, InstantiatorFactory instantiatorFactory, ImmutableAttributes fromAttributes, ImmutableSortedMap<String, DefaultTransformationRegistration.FileInputParameter> inputFiles, PropertyWalker propertyWalker) {
         super(implementationClass, inputsHash, fromAttributes);
         this.parameterObject = parameterObject;
+        this.inputFiles = inputFiles;
+        this.propertyWalker = propertyWalker;
         this.instanceFactory = instantiatorFactory.injectScheme(ImmutableSet.of(PrimaryInput.class, PrimaryInputDependencies.class, TransformParameters.class)).forType(implementationClass);
         this.requiresDependencies = instanceFactory.serviceInjectionTriggeredByAnnotation(PrimaryInputDependencies.class);
     }
@@ -62,6 +78,45 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
         transformAction.transform(transformOutputs);
         ImmutableList<File> outputs = transformOutputs.getRegisteredOutputs();
         return validateOutputs(primaryInput, outputDir, outputs);
+    }
+
+    @Override
+    public ImmutableSortedMap<String, CurrentFileCollectionFingerprint> getInputFileFingerprints(File primaryInput, ArtifactTransformDependencies dependencies, FileCollectionFingerprinterRegistry fileCollectionFingerprinterRegistry, PathToFileResolver resolver) {
+        ImmutableSortedMap.Builder<String, CurrentFileCollectionFingerprint> builder = ImmutableSortedMap.naturalOrder();
+        for (Map.Entry<String, DefaultTransformationRegistration.FileInputParameter> entry : inputFiles.entrySet()) {
+            DefaultTransformationRegistration.FileInputParameter inputParameter = entry.getValue();
+            CurrentFileCollectionFingerprint fingerprint = fingerprintInput(inputParameter.getValue(), inputParameter.getFileNormalizer(), inputParameter.getFilePropertyType(), fileCollectionFingerprinterRegistry, resolver);
+            builder.put("parameters." + entry.getKey(), fingerprint);
+        }
+        ArtifactTransformAction artifactTransformAction = newTransformAction(primaryInput, dependencies);
+        propertyWalker.visitProperties(artifactTransformAction, ParameterValidationContext.NOOP, new PropertyVisitor() {
+            @Override
+            public boolean visitOutputFilePropertiesOnly() {
+                return false;
+            }
+
+            @Override
+            public void visitInputFileProperty(String propertyName, boolean optional, boolean skipWhenEmpty, Class<? extends FileNormalizer> fileNormalizer, PropertyValue value, InputFilePropertyType filePropertyType) {
+                builder.put("action." + propertyName, fingerprintInput(value, fileNormalizer, filePropertyType, fileCollectionFingerprinterRegistry, resolver));
+            }
+
+            @Override
+            public void visitInputProperty(String propertyName, PropertyValue value, boolean optional) {
+            }
+
+            @Override
+            public void visitOutputFileProperty(String propertyName, boolean optional, PropertyValue value, OutputFilePropertyType filePropertyType) {
+            }
+
+            @Override
+            public void visitDestroyableProperty(Object value) {
+            }
+
+            @Override
+            public void visitLocalStateProperty(Object value) {
+            }
+        });
+        return builder.build();
     }
 
     private ArtifactTransformAction newTransformAction(File inputFile, ArtifactTransformDependencies artifactTransformDependencies) {

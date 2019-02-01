@@ -718,7 +718,6 @@ class ArtifactTransformCachingIntegrationTest extends AbstractHttpDependencyReso
         output.count("Transformed") == 0
     }
 
-
     def "can pass a file parameter to the transform action"() {
         def m1 = mavenRepo.module("test", "test", "1.3").publish()
         m1.artifactFile.text = "1234"
@@ -774,7 +773,7 @@ class ArtifactTransformCachingIntegrationTest extends AbstractHttpDependencyReso
                     assert workspace.directory && workspace.list().length == 0
                     println "Transforming \${primaryInput.name} to \${output.name}"
                     output.text = String.valueOf(primaryInput.length())
-                    additionalInputs.each {
+                    parameters.additionalInputs.each {
                         output << '\\n' << "\${it.name}:\${it.length()}"
                     }
                     
@@ -1630,7 +1629,7 @@ ${getFileSizerBody(fileValue, 'new File(outputDirectory, ')}
             abstract class FileSizerAction implements ArtifactTransformAction {
                 @TransformParameters
                 abstract FileSizer getParameters()
-
+                @InputFiles
                 @PrimaryInput
                 abstract File getInput()
                 

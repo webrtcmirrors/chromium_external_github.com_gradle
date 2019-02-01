@@ -59,6 +59,7 @@ class ArtifactTransformValuesInjectionIntegrationTest extends AbstractDependency
             abstract class MakeGreenAction implements ArtifactTransformAction {
                 @TransformParameters
                 abstract MakeGreen getParameters()
+                @InputFiles
                 @PrimaryInput
                 abstract File getInput()
                 
@@ -168,13 +169,14 @@ class ArtifactTransformValuesInjectionIntegrationTest extends AbstractDependency
             
             @TransformAction(MakeGreenAction)
             interface MakeGreen {
-                @Input
+                @InputFiles
                 ConfigurableFileCollection getSomeFiles()
             }
             
             abstract class MakeGreenAction implements ArtifactTransformAction {
                 @TransformParameters
                 abstract MakeGreen getParameters()
+                @InputFiles
                 @PrimaryInput
                 abstract File getInput()
                 
@@ -215,8 +217,10 @@ project(':b') {
 }
 
 abstract class MakeGreen implements ArtifactTransformAction {
+    @InputFiles
     @PrimaryInputDependencies
     abstract ${targetType} getDependencies()
+    @InputFiles
     @PrimaryInput
     abstract File getInput()
     
@@ -344,7 +348,7 @@ abstract class MakeGreen extends ArtifactTransform {
         then:
         // Documents existing behaviour. Should fail eagerly and with a better error message
         failure.assertHasDescription("Execution failed for task ':a:resolve'.")
-        failure.assertHasCause("Execution failed for MakeGreenAction: ${file('b/build/b.jar')}.")
+        failure.assertHasCause("Failed to transform artifact 'b.jar (project :b)' to match attributes {artifactType=jar, color=green}")
         failure.assertHasCause("Unable to determine constructor argument #1: missing parameter of interface MakeGreen, or no service of type interface MakeGreen")
     }
 

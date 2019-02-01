@@ -17,9 +17,15 @@
 package org.gradle.api.internal.artifacts.transform;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.artifacts.transform.ArtifactTransform;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
+import org.gradle.api.internal.tasks.properties.InputFilePropertyType;
+import org.gradle.internal.file.PathToFileResolver;
+import org.gradle.internal.fingerprint.AbsolutePathInputNormalizer;
+import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry;
 import org.gradle.internal.hash.HashCode;
 import org.gradle.internal.instantiation.InstantiatorFactory;
 import org.gradle.internal.isolation.Isolatable;
@@ -29,6 +35,8 @@ import java.io.File;
 import java.util.List;
 
 public class LegacyTransformer extends AbstractTransformer<ArtifactTransform> {
+    private static final String PRIMARY_INPUT_PROPERTY_NAME = "primaryInput";
+    private static final String DEPENDENCIES_PROPERTY_NAME = "dependencies";
 
     private final Isolatable<Object[]> parameters;
     private final Instantiator instantiator;
@@ -52,6 +60,13 @@ public class LegacyTransformer extends AbstractTransformer<ArtifactTransform> {
             throw new InvalidUserDataException("Transform returned null result.");
         }
         return validateOutputs(primaryInput, outputDir, ImmutableList.copyOf(outputs));
+    }
+
+    @Override
+    public ImmutableSortedMap<String, CurrentFileCollectionFingerprint> getInputFileFingerprints(File primaryInput, ArtifactTransformDependencies dependencies, FileCollectionFingerprinterRegistry fileCollectionFingerprinterRegistry, PathToFileResolver resolver) {
+        ImmutableSortedMap.Builder<String, CurrentFileCollectionFingerprint> builder = ImmutableSortedMap.naturalOrder();
+        builder.put(PRIMARY_INPUT_PROPERTY_NAME, fingerprintInput(primaryInput, AbsolutePathInputNormalizer.class, InputFilePropertyType.FILES, fileCollectionFingerprinterRegistry, resolver));
+        return builder.build();
     }
 
     private ArtifactTransform newTransformer() {

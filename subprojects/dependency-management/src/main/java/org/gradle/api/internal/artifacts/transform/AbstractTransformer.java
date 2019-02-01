@@ -19,6 +19,14 @@ package org.gradle.api.internal.artifacts.transform;
 import com.google.common.collect.ImmutableList;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
+import org.gradle.api.internal.file.FileCollectionInternal;
+import org.gradle.api.internal.tasks.properties.FileParameterUtils;
+import org.gradle.api.internal.tasks.properties.InputFilePropertyType;
+import org.gradle.api.tasks.FileNormalizer;
+import org.gradle.internal.file.PathToFileResolver;
+import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinter;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry;
 import org.gradle.internal.hash.HashCode;
 
 import java.io.File;
@@ -58,6 +66,12 @@ public abstract class AbstractTransformer<T> implements Transformer {
             throw new InvalidUserDataException("Transform output file " + output.getPath() + " is not a child of the transform's input file or output directory.");
         }
         return outputs;
+    }
+
+    protected CurrentFileCollectionFingerprint fingerprintInput(Object value, Class<? extends FileNormalizer> normalizer, InputFilePropertyType filePropertyType, FileCollectionFingerprinterRegistry fileCollectionFingerprinterRegistry, PathToFileResolver resolver) {
+        FileCollectionFingerprinter fingerprinter = fileCollectionFingerprinterRegistry.getFingerprinter(normalizer);
+        FileCollectionInternal files = FileParameterUtils.asFileCollection(resolver, FileParameterUtils.resolveInputFileValue(resolver, filePropertyType, value));
+        return fingerprinter.fingerprint(files);
     }
 
     @Override

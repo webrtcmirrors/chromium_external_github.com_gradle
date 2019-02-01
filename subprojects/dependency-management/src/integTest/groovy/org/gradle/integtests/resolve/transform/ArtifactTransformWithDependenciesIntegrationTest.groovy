@@ -150,9 +150,11 @@ abstract class TestTransformAction implements ArtifactTransformAction {
     @TransformParameters
     abstract TestTransform getParameters()
 
+    @InputFiles
     @PrimaryInputDependencies
     abstract FileCollection getPrimaryInputDependencies()
 
+    @InputFiles
     @PrimaryInput
     abstract File getInput()
 
@@ -169,7 +171,7 @@ abstract class TestTransformAction implements ArtifactTransformAction {
 }
 
 abstract class SimpleTransform implements ArtifactTransformAction {
-
+    @InputFiles
     @PrimaryInput
     abstract File getInput()
 

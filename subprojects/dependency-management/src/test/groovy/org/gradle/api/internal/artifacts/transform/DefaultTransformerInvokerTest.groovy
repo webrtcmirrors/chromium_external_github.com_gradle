@@ -17,6 +17,7 @@
 package org.gradle.api.internal.artifacts.transform
 
 import com.google.common.collect.ImmutableList
+import com.google.common.collect.ImmutableSortedMap
 import org.gradle.api.artifacts.transform.ArtifactTransform
 import org.gradle.api.internal.artifacts.DefaultBuildIdentifier
 import org.gradle.api.internal.artifacts.DefaultProjectComponentIdentifier
@@ -24,13 +25,20 @@ import org.gradle.api.internal.artifacts.dsl.dependencies.ProjectFinder
 import org.gradle.api.internal.attributes.ImmutableAttributes
 import org.gradle.api.internal.cache.StringInterner
 import org.gradle.api.internal.changedetection.state.DefaultWellKnownFileLocations
+import org.gradle.api.internal.file.IdentityFileResolver
 import org.gradle.api.internal.file.TestFiles
+import org.gradle.api.internal.file.collections.ImmutableFileCollection
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher
 import org.gradle.internal.component.local.model.ComponentFileArtifactIdentifier
 import org.gradle.internal.execution.TestExecutionHistoryStore
+import org.gradle.internal.file.PathToFileResolver
+import org.gradle.internal.fingerprint.AbsolutePathInputNormalizer
+import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint
 import org.gradle.internal.fingerprint.FileCollectionFingerprinter
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry
 import org.gradle.internal.fingerprint.impl.AbsolutePathFileCollectionFingerprinter
+import org.gradle.internal.fingerprint.impl.DefaultFileCollectionFingerprinterRegistry
 import org.gradle.internal.fingerprint.impl.OutputFileCollectionFingerprinter
 import org.gradle.internal.hash.HashCode
 import org.gradle.internal.service.ServiceRegistry
@@ -59,6 +67,7 @@ class DefaultTransformerInvokerTest extends AbstractProjectBuilderSpec {
     def stringInterner = new StringInterner()
     def dependencyFingerprinter = new AbsolutePathFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter)
     def outputFilesFingerprinter = new OutputFileCollectionFingerprinter(stringInterner, fileSystemSnapshotter)
+    def fingerprinterRegistry = new DefaultFileCollectionFingerprinterRegistry([dependencyFingerprinter])
 
     def classloaderHasher = Stub(ClassLoaderHierarchyHasher) {
         getClassLoaderHash(_) >> HashCode.fromInt(1234)
@@ -83,14 +92,14 @@ class DefaultTransformerInvokerTest extends AbstractProjectBuilderSpec {
 
     def invoker = new DefaultTransformerInvoker(
         workExecutorTestFixture.workExecutor,
-        fileSystemSnapshotter,
         artifactTransformListener,
         transformationWorkspaceProvider,
-        dependencyFingerprinter,
         outputFilesFingerprinter,
         classloaderHasher,
         projectFinder,
-        true
+        true,
+        fingerprinterRegistry,
+        new IdentityFileResolver()
     )
 
     private static class TestTransformer implements Transformer {
@@ -129,6 +138,11 @@ class DefaultTransformerInvokerTest extends AbstractProjectBuilderSpec {
         @Override
         HashCode getSecondaryInputHash() {
             return secondaryInputsHash
+        }
+
+        @Override
+        ImmutableSortedMap<String, CurrentFileCollectionFingerprint> getInputFileFingerprints(File primaryInput, ArtifactTransformDependencies dependencies, FileCollectionFingerprinterRegistry fileCollectionFingerprinterRegistry, PathToFileResolver resolver) {
+            return ImmutableSortedMap.<String, CurrentFileCollectionFingerprint>of("primaryInput", fileCollectionFingerprinterRegistry.getFingerprinter(AbsolutePathInputNormalizer.class).fingerprint(ImmutableFileCollection.of(primaryInput)))
         }
 
         @Override

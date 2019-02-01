@@ -15,6 +15,7 @@
  */
 package org.gradle.api.internal.artifacts;
 
+import com.google.common.collect.ImmutableList;
 import org.gradle.StartParameter;
 import org.gradle.api.Describable;
 import org.gradle.api.artifacts.ConfigurablePublishArtifact;
@@ -121,7 +122,10 @@ import org.gradle.internal.execution.impl.steps.StoreSnapshotsStep;
 import org.gradle.internal.execution.impl.steps.TimeoutStep;
 import org.gradle.internal.execution.impl.steps.UpToDateResult;
 import org.gradle.internal.execution.timeout.TimeoutHandler;
+import org.gradle.internal.file.PathToFileResolver;
+import org.gradle.internal.fingerprint.FileCollectionFingerprinterRegistry;
 import org.gradle.internal.fingerprint.impl.AbsolutePathFileCollectionFingerprinter;
+import org.gradle.internal.fingerprint.impl.DefaultFileCollectionFingerprinterRegistry;
 import org.gradle.internal.fingerprint.impl.OutputFileCollectionFingerprinter;
 import org.gradle.internal.id.UniqueId;
 import org.gradle.internal.instantiation.InstantiatorFactory;
@@ -184,6 +188,10 @@ public class DefaultDependencyManagementServices implements DependencyManagement
                 public void afterTransformerInvocation(Describable transformer, Describable subject) {
                 }
             };
+        }
+
+        FileCollectionFingerprinterRegistry createFileCollectionFingerprinterRegistry(OutputFileCollectionFingerprinter outputFileCollectionFingerprinter, AbsolutePathFileCollectionFingerprinter absolutePathFileCollectionFingerprinter) {
+            return new DefaultFileCollectionFingerprinterRegistry(ImmutableList.of(outputFileCollectionFingerprinter, absolutePathFileCollectionFingerprinter));
         }
 
         OutputFileCollectionFingerprinter createOutputFingerprinter(FileSystemSnapshotter fileSystemSnapshotter, StringInterner stringInterner) {
@@ -252,25 +260,25 @@ public class DefaultDependencyManagementServices implements DependencyManagement
         }
 
         TransformerInvoker createTransformerInvoker(WorkExecutor<UpToDateResult> workExecutor,
-                                                    FileSystemSnapshotter fileSystemSnapshotter,
                                                     ImmutableCachingTransformationWorkspaceProvider transformationWorkspaceProvider,
                                                     ArtifactTransformListener artifactTransformListener,
                                                     // For now we assume absolute paths when dealing with dependencies
-                                                    AbsolutePathFileCollectionFingerprinter dependencyFingerprinter,
                                                     OutputFileCollectionFingerprinter outputFileCollectionFingerprinter,
                                                     ClassLoaderHierarchyHasher classLoaderHierarchyHasher,
                                                     ProjectFinder projectFinder,
-                                                    FeaturePreviews featurePreviews) {
+                                                    FeaturePreviews featurePreviews,
+                                                    FileCollectionFingerprinterRegistry fileCollectionFingerprinterRegistry,
+                                                    PathToFileResolver resolver) {
             return new DefaultTransformerInvoker(
                 workExecutor,
-                fileSystemSnapshotter,
                 artifactTransformListener,
                 transformationWorkspaceProvider,
-                dependencyFingerprinter,
                 outputFileCollectionFingerprinter,
                 classLoaderHierarchyHasher,
                 projectFinder,
-                featurePreviews.isFeatureEnabled(FeaturePreviews.Feature.INCREMENTAL_ARTIFACT_TRANSFORMATIONS)
+                featurePreviews.isFeatureEnabled(FeaturePreviews.Feature.INCREMENTAL_ARTIFACT_TRANSFORMATIONS),
+                fileCollectionFingerprinterRegistry,
+                resolver
             );
         }
 
