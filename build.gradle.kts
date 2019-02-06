@@ -195,6 +195,11 @@ allprojects {
 }
 
 subprojects {
+    tasks.configureEach {
+      outputs.upToDateWhen({ false })
+      outputs.cacheIf({ false })
+    }
+
     version = rootProject.version
 
     if (project in javaProjects) {
