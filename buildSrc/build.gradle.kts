@@ -29,6 +29,10 @@ plugins {
 }
 
 subprojects {
+    tasks.configureEach {
+      outputs.upToDateWhen({ false })
+      outputs.cacheIf({ false })
+    }
     if (name != "buildPlatform") {
         apply(plugin = "java-library")
 
