@@ -48,6 +48,7 @@ open class CheckKotlinCompilerEmbeddableDependencies : DefaultTask() {
     @Suppress("unused")
     fun check() {
         receiptFile.delete()
+        receiptFile.parentFile.mkdirs()
         val currentFiles = current.files.sorted()
         val expectedFiles = expected.files.filterNot { it.name.startsWith("kotlin-compiler-embeddable-") }.sorted()
         require(currentFiles == expectedFiles) {
