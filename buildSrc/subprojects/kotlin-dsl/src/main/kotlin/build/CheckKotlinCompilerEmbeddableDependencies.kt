@@ -42,7 +42,7 @@ open class CheckKotlinCompilerEmbeddableDependencies : DefaultTask() {
     val expected = project.files()
 
     val receiptFile: File
-        @OutputFile get() = temporaryDir.resolve("output")
+        @OutputFile get() = project.buildDir.resolve("tmp/$name/output")
 
     @TaskAction
     @Suppress("unused")
