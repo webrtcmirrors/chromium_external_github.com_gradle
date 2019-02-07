@@ -76,7 +76,7 @@ tasks {
         doFirst {
             targetFiles.forEach { target ->
 
-                val retries = 3
+                val retries = 1
                 val backoffMs = 100L
 
                 var done = false
