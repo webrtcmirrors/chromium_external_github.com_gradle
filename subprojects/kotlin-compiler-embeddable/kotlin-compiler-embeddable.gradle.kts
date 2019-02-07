@@ -2,7 +2,14 @@ import build.CheckKotlinCompilerEmbeddableDependencies
 import build.PatchKotlinCompilerEmbeddable
 import build.futureKotlin
 import build.kotlinVersion
+import org.apache.commons.io.FileUtils
 import org.gradle.gradlebuild.unittestandcompile.ModuleType
+import java.io.IOException
+import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.Files
+import java.nio.file.FileVisitResult
+import java.nio.file.attribute.BasicFileAttributes
 
 plugins {
     `kotlin-library`
@@ -63,5 +70,44 @@ tasks {
 
     sourceSets.main {
         output.dir(files(patchedClassesDir).builtBy(patchKotlinCompilerEmbeddable))
+    }
+
+    clean {
+        doFirst {
+            targetFiles.forEach { target ->
+                target.helpfulDeleteRecursively()
+            }
+        }
+    }
+}
+
+fun File.helpfulDeleteRecursively() {
+    if (isDirectory) {
+        if (FileUtils.isSymlink(this)) {
+            if (!delete()) throw IOException("Unable to delete symlink: $canonicalPath")
+        } else {
+            val errorPaths = mutableListOf<String>()
+            Files.walkFileTree(toPath(), object : SimpleFileVisitor<Path>() {
+
+                override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                    if (!file.toFile().delete()) errorPaths.add(file.toFile().canonicalPath)
+                    return super.visitFile(file, attrs)
+                }
+
+                override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+                    if (!dir.toFile().delete()) errorPaths.add(dir.toFile().canonicalPath)
+                    return super.postVisitDirectory(dir, exc)
+                }
+            })
+            if (errorPaths.isNotEmpty()) {
+                throw IOException(errorPaths.joinToString(
+                    separator = "\n\t- ",
+                    prefix = "Unable to recursively delete directory $canonicalPath, failed paths:\n",
+                    postfix = "\n"
+                ))
+            }
+        }
+    } else if (exists()) {
+        if (!delete()) throw IOException("Unable to delete file: $canonicalPath")
     }
 }
