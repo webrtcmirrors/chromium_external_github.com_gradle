@@ -63,7 +63,6 @@ tasks {
         actions.clear()
     }
 
-    /*
     val classesDir = layout.buildDirectory.dir("kotlin-compiler-embeddable-classes")
 
     val unpackPatched by registering(Sync::class) {
@@ -75,5 +74,4 @@ tasks {
     sourceSets.main {
         output.dir(files(classesDir).builtBy(unpackPatched))
     }
-    */
 }
