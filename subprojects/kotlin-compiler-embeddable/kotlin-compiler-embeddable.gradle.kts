@@ -75,7 +75,28 @@ tasks {
     clean {
         doFirst {
             targetFiles.forEach { target ->
-                target.helpfulDeleteRecursively()
+
+                val retries = 3
+                val backoffMs = 100L
+
+                var done = false
+                var retry = 1
+                while (!done && retry <= retries) {
+                    System.err.println("DELETING $target TRY $retry")
+                    try {
+                        target.helpfulDeleteRecursively()
+                        done = true
+                    } catch (ex: Exception) {
+                        if (retry == retries) {
+                            throw ex
+                        } else {
+                            System.err.println("UNABLE TO DELETE $target TRY $retry")
+                            ex.printStackTrace()
+                            Thread.sleep(backoffMs)
+                        }
+                    }
+                    retry++
+                }
             }
         }
     }
@@ -100,11 +121,9 @@ fun File.helpfulDeleteRecursively() {
                 }
             })
             if (errorPaths.isNotEmpty()) {
-                throw IOException(errorPaths.joinToString(
-                    separator = "\n\t- ",
-                    prefix = "Unable to recursively delete directory $canonicalPath, failed paths:\n",
-                    postfix = "\n"
-                ))
+                val errors = errorPaths.joinToString(separator = "\n\t- ", prefix = "\t- ")
+                val remaining = walk().joinToString(separator = "\n\t- ", prefix = "\t- ") { it.canonicalPath }
+                throw IOException("Unable to recursively delete directory $canonicalPath, failed paths:\n$errors\nRemaining files:\n$remaining\n")
             }
         }
     } else if (exists()) {
