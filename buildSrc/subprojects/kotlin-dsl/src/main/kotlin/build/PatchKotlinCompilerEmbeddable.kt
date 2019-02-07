@@ -26,20 +26,24 @@ import org.gradle.api.specs.Specs
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 
-import org.gradle.api.internal.file.archive.ZipCopyAction.CONSTANT_TIME_FOR_ZIP_ENTRIES
 import org.gradle.api.internal.file.pattern.PatternMatcherFactory
 
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
 
 import org.gradle.kotlin.dsl.*
 
 
+/**
+ * Patch `kotlin-compiler-embeddable` JAR for use as Kotlin DSL script compiler.
+ *
+ * This task outputs a classes directory in order to support IntelliJ compiling projects that depend on `:kotlinCompilerEmbeddable`.
+ * IntelliJ uses the source set output, not the `:jar`.
+ */
 @CacheableTask
 open class PatchKotlinCompilerEmbeddable : DefaultTask() {
 
@@ -58,8 +62,8 @@ open class PatchKotlinCompilerEmbeddable : DefaultTask() {
     @Classpath
     lateinit var additionalFiles: FileTree
 
-    @OutputFile
-    val outputFile = project.objects.fileProperty()
+    @OutputDirectory
+    val outputDirectory = project.objects.directoryProperty()
 
     @TaskAction
     @Suppress("unused")
@@ -68,36 +72,33 @@ open class PatchKotlinCompilerEmbeddable : DefaultTask() {
             originalFile = originalFiles.single {
                 it.name.startsWith("kotlin-compiler-embeddable-")
             },
-            patchedFile = outputFile.asFile.get().apply {
-                delete()
-                parentFile.mkdirs()
+            patchedDirectory = outputDirectory.asFile.get().apply {
+                deleteRecursively()
+                mkdirs()
             }
         )
 
     private
-    fun patchKotlinCompilerEmbeddable(originalFile: File, patchedFile: File) =
+    fun patchKotlinCompilerEmbeddable(originalFile: File, patchedDirectory: File) =
         ZipFile(originalFile).use { originalJar ->
-            ZipOutputStream(patchedFile.outputStream().buffered()).use { patchedJar ->
-                patch(originalJar, patchedJar)
-            }
+            patch(originalJar, patchedDirectory)
         }
 
     private
-    fun patch(originalJar: ZipFile, patchedJar: ZipOutputStream) {
-        patchedJar.setComment(originalJar.comment)
-        copyFromOriginalApplyingExcludes(originalJar, patchedJar)
-        copyFromDependenciesApplyingIncludes(patchedJar)
-        copyAdditionalFiles(patchedJar)
+    fun patch(originalJar: ZipFile, patchedDirectory: File) {
+        copyFromOriginalApplyingExcludes(originalJar, patchedDirectory)
+        copyFromDependenciesApplyingIncludes(patchedDirectory)
+        copyAdditionalFiles(patchedDirectory)
     }
 
     private
-    fun copyFromOriginalApplyingExcludes(originalJar: ZipFile, patchedJar: ZipOutputStream) =
+    fun copyFromOriginalApplyingExcludes(originalJar: ZipFile, patchedDirectory: File) =
         originalJar.entries().asSequence().filterExcluded().forEach { originalEntry ->
-            copyEntry(originalJar, originalEntry, patchedJar)
+            copyEntry(originalJar, originalEntry, patchedDirectory)
         }
 
     private
-    fun copyFromDependenciesApplyingIncludes(patchedJar: ZipOutputStream) =
+    fun copyFromDependenciesApplyingIncludes(patchedDirectory: File) =
         dependenciesIncludes.get().asSequence()
             .flatMap { (jarPrefix, includes) ->
                 val includeSpec = includeSpecFor(includes)
@@ -108,33 +109,33 @@ open class PatchKotlinCompilerEmbeddable : DefaultTask() {
                     includedJar.entries().asSequence()
                         .filter { !it.isDirectory && includeSpec.isSatisfiedBy(RelativePath.parse(true, it.name)) }
                         .forEach { includedEntry ->
-                            copyEntry(includedJar, includedEntry, patchedJar)
+                            copyEntry(includedJar, includedEntry, patchedDirectory)
                         }
                 }
             }
 
     private
-    fun copyAdditionalFiles(patchedJar: ZipOutputStream) =
+    fun copyAdditionalFiles(patchedDirectory: File) =
         additionalFiles.visit(object : EmptyFileVisitor() {
             override fun visitFile(fileDetails: FileVisitDetails) {
-                patchedJar.putNextEntry(ZipEntry(fileDetails.relativePath.pathString).apply {
-                    time = CONSTANT_TIME_FOR_ZIP_ENTRIES
-                    size = fileDetails.file.length()
-                })
                 fileDetails.file.inputStream().buffered().use { input ->
-                    input.copyTo(patchedJar)
+                    patchedDirectory.resolve(fileDetails.relativePath.pathString).apply { parentFile.mkdirs() }.outputStream().buffered().use { output ->
+                        input.copyTo(output)
+                    }
                 }
-                patchedJar.closeEntry()
             }
         })
 
     private
-    fun copyEntry(sourceJar: ZipFile, sourceEntry: ZipEntry, destinationJar: ZipOutputStream) {
-        destinationJar.putNextEntry(ZipEntry(sourceEntry))
-        sourceJar.getInputStream(sourceEntry).buffered().use { input ->
-            input.copyTo(destinationJar)
+    fun copyEntry(sourceJar: ZipFile, sourceEntry: ZipEntry, patchedDirectory: File) {
+        patchedDirectory.resolve(sourceEntry.name).also { path ->
+            if (sourceEntry.isDirectory) path.mkdirs()
+            else sourceJar.getInputStream(sourceEntry).buffered().use { input ->
+                patchedDirectory.resolve(sourceEntry.name).apply { parentFile.mkdirs() }.outputStream().buffered().use { output ->
+                    input.copyTo(output)
+                }
+            }
         }
-        destinationJar.closeEntry()
     }
 
     private

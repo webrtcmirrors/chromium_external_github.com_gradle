@@ -39,7 +39,10 @@ tasks {
         expected.from(kotlinCompilerEmbeddableConfiguration)
     }
 
+    val patchedClassesDir = layout.buildDirectory.dir("patched-classes")
+
     val patchKotlinCompilerEmbeddable by registering(PatchKotlinCompilerEmbeddable::class) {
+        dependsOn(checkKotlinCompilerEmbeddableDependencies)
         excludes.set(listOf(
             "META-INF/services/javax.annotation.processing.Processor",
             "META-INF/native/**/*jansi.*"
@@ -55,23 +58,10 @@ tasks {
         additionalFiles = fileTree(classpathManifest.get().manifestFile.parentFile) {
             include(classpathManifest.get().manifestFile.name)
         }
-        outputFile.set(jar.get().archiveFile)
-    }
-
-    jar {
-        dependsOn(patchKotlinCompilerEmbeddable, checkKotlinCompilerEmbeddableDependencies)
-        actions.clear()
-    }
-
-    val classesDir = layout.buildDirectory.dir("kotlin-compiler-embeddable-classes")
-
-    val unpackPatched by registering(Sync::class) {
-        dependsOn(patchKotlinCompilerEmbeddable)
-        from(zipTree(patchKotlinCompilerEmbeddable.get().outputFile))
-        into(classesDir)
+        outputDirectory.set(patchedClassesDir)
     }
 
     sourceSets.main {
-        output.dir(files(classesDir).builtBy(unpackPatched))
+        output.dir(files(patchedClassesDir).builtBy(patchKotlinCompilerEmbeddable))
     }
 }
