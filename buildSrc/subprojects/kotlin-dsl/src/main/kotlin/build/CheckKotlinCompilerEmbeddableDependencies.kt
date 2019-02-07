@@ -21,8 +21,6 @@ import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
-import java.io.File
-
 
 /**
  * Used to validate that :kotlinCompilerEmbeddable dependencies are aligned with the original dependencies.
@@ -41,8 +39,8 @@ open class CheckKotlinCompilerEmbeddableDependencies : DefaultTask() {
     @Classpath
     val expected = project.files()
 
-    val receiptFile: File
-        @OutputFile get() = project.buildDir.resolve("tmp/$name/output")
+    @OutputFile
+    val receiptFile = temporaryDir.resolve("receipt")
 
     @TaskAction
     @Suppress("unused")
