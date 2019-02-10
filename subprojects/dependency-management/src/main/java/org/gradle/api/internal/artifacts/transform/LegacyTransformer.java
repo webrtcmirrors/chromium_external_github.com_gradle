@@ -21,7 +21,7 @@ import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.artifacts.transform.ArtifactTransform;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
 import org.gradle.internal.hash.HashCode;
-import org.gradle.internal.instantiation.InstantiatorFactory;
+import org.gradle.internal.instantiation.InstantiationScheme;
 import org.gradle.internal.isolation.Isolatable;
 import org.gradle.internal.reflect.Instantiator;
 
@@ -33,9 +33,9 @@ public class LegacyTransformer extends AbstractTransformer<ArtifactTransform> {
     private final Isolatable<Object[]> parameters;
     private final Instantiator instantiator;
 
-    public LegacyTransformer(Class<? extends ArtifactTransform> implementationClass, Isolatable<Object[]> parameters, HashCode inputsHash, InstantiatorFactory instantiatorFactory, ImmutableAttributes fromAttributes) {
+    public LegacyTransformer(Class<? extends ArtifactTransform> implementationClass, Isolatable<Object[]> parameters, HashCode inputsHash, InstantiationScheme instantiationScheme, ImmutableAttributes fromAttributes) {
         super(implementationClass, inputsHash, fromAttributes);
-        this.instantiator = instantiatorFactory.inject();
+        this.instantiator = instantiationScheme.instantiator();
         this.parameters = parameters;
     }
 

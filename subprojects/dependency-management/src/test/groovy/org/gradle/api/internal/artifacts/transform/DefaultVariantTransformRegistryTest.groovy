@@ -24,7 +24,6 @@ import org.gradle.api.artifacts.transform.VariantTransformConfigurationException
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.internal.DynamicObjectAware
 import org.gradle.api.internal.tasks.properties.InspectionScheme
-import org.gradle.api.internal.tasks.properties.InspectionSchemeFactory
 import org.gradle.api.internal.tasks.properties.PropertyWalker
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher
@@ -51,15 +50,13 @@ class DefaultVariantTransformRegistryTest extends Specification {
     def transformerInvoker = Mock(TransformerInvoker)
     def valueSnapshotter = Mock(ValueSnapshotter)
     def propertyWalker = Mock(PropertyWalker)
-    def inspectionSchemeFactory = Stub(InspectionSchemeFactory) {
-        inspectionScheme(_) >> Stub(InspectionScheme) {
-            getPropertyWalker() >> propertyWalker
-        }
+    def inspectionScheme = Stub(InspectionScheme) {
+        getPropertyWalker() >> propertyWalker
     }
     def isolatableFactory = new TestIsolatableFactory()
     def classLoaderHierarchyHasher = Mock(ClassLoaderHierarchyHasher)
     def attributesFactory = AttributeTestUtil.attributesFactory()
-    def registry = new DefaultVariantTransformRegistry(instantiatorFactory, attributesFactory, isolatableFactory, classLoaderHierarchyHasher, Stub(ServiceRegistry), transformerInvoker, valueSnapshotter, inspectionSchemeFactory)
+    def registry = new DefaultVariantTransformRegistry(instantiatorFactory, attributesFactory, isolatableFactory, classLoaderHierarchyHasher, Stub(ServiceRegistry), transformerInvoker, valueSnapshotter, new ArtifactTransformActionScheme(instantiatorFactory.injectScheme(), inspectionScheme, inspectionScheme), new ArtifactTransformParameterScheme(instantiatorFactory.injectScheme(), inspectionScheme))
 
     def "setup"() {
         _ * classLoaderHierarchyHasher.getClassLoaderHash(_) >> HashCode.fromInt(123)

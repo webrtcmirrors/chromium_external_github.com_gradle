@@ -16,7 +16,6 @@
 
 package org.gradle.api.internal.artifacts.transform;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.gradle.api.Action;
 import org.gradle.api.ActionConfiguration;
@@ -25,10 +24,7 @@ import org.gradle.api.artifacts.transform.ArtifactTransform;
 import org.gradle.api.artifacts.transform.ArtifactTransformAction;
 import org.gradle.api.artifacts.transform.ArtifactTransformSpec;
 import org.gradle.api.artifacts.transform.ParameterizedArtifactTransformSpec;
-import org.gradle.api.artifacts.transform.PrimaryInput;
-import org.gradle.api.artifacts.transform.PrimaryInputDependencies;
 import org.gradle.api.artifacts.transform.TransformAction;
-import org.gradle.api.artifacts.transform.TransformParameters;
 import org.gradle.api.artifacts.transform.VariantTransform;
 import org.gradle.api.artifacts.transform.VariantTransformConfigurationException;
 import org.gradle.api.attributes.AttributeContainer;
@@ -36,16 +32,8 @@ import org.gradle.api.internal.DefaultActionConfiguration;
 import org.gradle.api.internal.artifacts.VariantTransformRegistry;
 import org.gradle.api.internal.attributes.AttributeContainerInternal;
 import org.gradle.api.internal.attributes.ImmutableAttributesFactory;
-import org.gradle.api.internal.tasks.properties.InspectionSchemeFactory;
 import org.gradle.api.internal.tasks.properties.PropertyWalker;
 import org.gradle.api.internal.tasks.properties.TypeMetadataStore;
-import org.gradle.api.tasks.Classpath;
-import org.gradle.api.tasks.CompileClasspath;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Nested;
 import org.gradle.internal.Cast;
 import org.gradle.internal.classloader.ClassLoaderHierarchyHasher;
 import org.gradle.internal.instantiation.InstantiationScheme;
@@ -64,24 +52,28 @@ public class DefaultVariantTransformRegistry implements VariantTransformRegistry
     private final IsolatableFactory isolatableFactory;
     private final ClassLoaderHierarchyHasher classLoaderHierarchyHasher;
     private final ServiceRegistry services;
-    private final InstantiatorFactory instantiatorFactory;
     private final TransformerInvoker transformerInvoker;
     private final ValueSnapshotter valueSnapshotter;
     private final PropertyWalker parametersObjectPropertyWalker;
     private final TypeMetadataStore actionMetadataStore;
-    private final InstantiationScheme instantiationScheme;
+    private final InstantiatorFactory instantiatorFactory;
+    private final InstantiationScheme actionInstantiationScheme;
+    private final InstantiationScheme legacyActionInstantiationScheme;
+    private final InstantiationScheme parametersInstantiationScheme;
 
-    public DefaultVariantTransformRegistry(InstantiatorFactory instantiatorFactory, ImmutableAttributesFactory immutableAttributesFactory, IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, ServiceRegistry services, TransformerInvoker transformerInvoker, ValueSnapshotter valueSnapshotter, InspectionSchemeFactory inspectionSchemeFactory) {
-        this.instantiatorFactory = instantiatorFactory;
+    public DefaultVariantTransformRegistry(InstantiatorFactory instantiatorFactory, ImmutableAttributesFactory immutableAttributesFactory, IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, ServiceRegistry services, TransformerInvoker transformerInvoker, ValueSnapshotter valueSnapshotter, ArtifactTransformActionScheme actionScheme, ArtifactTransformParameterScheme parameterScheme) {
         this.immutableAttributesFactory = immutableAttributesFactory;
         this.isolatableFactory = isolatableFactory;
         this.classLoaderHierarchyHasher = classLoaderHierarchyHasher;
         this.services = services;
         this.transformerInvoker = transformerInvoker;
         this.valueSnapshotter = valueSnapshotter;
-        this.instantiationScheme = instantiatorFactory.injectScheme(ImmutableSet.of(PrimaryInput.class, PrimaryInputDependencies.class, TransformParameters.class));
-        this.parametersObjectPropertyWalker = inspectionSchemeFactory.inspectionScheme(ImmutableSet.of(Input.class, InputFile.class, InputFiles.class, InputDirectory.class, Classpath.class, CompileClasspath.class, Nested.class)).getPropertyWalker();
-        this.actionMetadataStore = inspectionSchemeFactory.inspectionScheme(ImmutableSet.of(PrimaryInput.class, PrimaryInputDependencies.class, TransformParameters.class)).getMetadataStore();
+        this.instantiatorFactory = instantiatorFactory;
+        this.actionInstantiationScheme = actionScheme.getInstantiationScheme();
+        this.legacyActionInstantiationScheme = actionScheme.getInstantiationScheme();
+        this.actionMetadataStore = actionScheme.getInspectionScheme().getMetadataStore();
+        this.parametersInstantiationScheme = parameterScheme.getInstantiationScheme();
+        this.parametersObjectPropertyWalker = parameterScheme.getInspectionScheme().getPropertyWalker();
     }
 
     @Override
@@ -93,14 +85,13 @@ public class DefaultVariantTransformRegistry implements VariantTransformRegistry
         validateAttributes(registration);
 
         Object[] parameters = registration.getTransformParameters();
-        Registration finalizedRegistration = DefaultTransformationRegistration.create(registration.from.asImmutable(), registration.to.asImmutable(), registration.actionType, parameters, isolatableFactory, classLoaderHierarchyHasher, instantiatorFactory, transformerInvoker);
+        Registration finalizedRegistration = DefaultTransformationRegistration.create(registration.from.asImmutable(), registration.to.asImmutable(), registration.actionType, parameters, isolatableFactory, classLoaderHierarchyHasher, legacyActionInstantiationScheme, transformerInvoker);
         transforms.add(finalizedRegistration);
     }
 
     @Override
     public <T> void registerTransform(Class<T> parameterType, Action<? super ParameterizedArtifactTransformSpec<T>> registrationAction) {
-        // TODO - should decorate
-        T parameterObject = instantiatorFactory.inject(services).newInstance(parameterType);
+        T parameterObject = parametersInstantiationScheme.withServices(services).newInstance(parameterType);
         TypedRegistration<T> registration = Cast.uncheckedNonnullCast(instantiatorFactory.decorateLenient().newInstance(TypedRegistration.class, parameterObject, immutableAttributesFactory));
         registrationAction.execute(registration);
 
@@ -119,7 +110,7 @@ public class DefaultVariantTransformRegistry implements VariantTransformRegistry
         validateActionType(actionType);
         validateAttributes(registration);
 
-        Registration finalizedRegistration = DefaultTransformationRegistration.create(registration.from.asImmutable(), registration.to.asImmutable(), actionType, parameterObject, isolatableFactory, classLoaderHierarchyHasher, instantiationScheme, transformerInvoker, valueSnapshotter, parametersObjectPropertyWalker, actionMetadataStore.getTypeMetadata(actionType));
+        Registration finalizedRegistration = DefaultTransformationRegistration.create(registration.from.asImmutable(), registration.to.asImmutable(), actionType, parameterObject, isolatableFactory, classLoaderHierarchyHasher, actionInstantiationScheme, transformerInvoker, valueSnapshotter, parametersObjectPropertyWalker, actionMetadataStore.getTypeMetadata(actionType));
         transforms.add(finalizedRegistration);
     }
 

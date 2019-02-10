@@ -43,10 +43,10 @@ public class DefaultTransformer extends AbstractTransformer<ArtifactTransformAct
     private final boolean requiresDependencies;
     private final InstanceFactory<? extends ArtifactTransformAction> instanceFactory;
 
-    public DefaultTransformer(Class<? extends ArtifactTransformAction> implementationClass, Isolatable<?> parameterObject, HashCode inputsHash, InstantiationScheme instantiationScheme, ImmutableAttributes fromAttributes) {
+    public DefaultTransformer(Class<? extends ArtifactTransformAction> implementationClass, Isolatable<?> parameterObject, HashCode inputsHash, InstantiationScheme actionInstantiationScheme, ImmutableAttributes fromAttributes) {
         super(implementationClass, inputsHash, fromAttributes);
         this.parameterObject = parameterObject;
-        this.instanceFactory = instantiationScheme.forType(implementationClass);
+        this.instanceFactory = actionInstantiationScheme.forType(implementationClass);
         this.requiresDependencies = instanceFactory.serviceInjectionTriggeredByAnnotation(PrimaryInputDependencies.class);
     }
 

@@ -67,7 +67,9 @@ import org.gradle.api.internal.artifacts.repositories.DefaultBaseRepositoryFacto
 import org.gradle.api.internal.artifacts.repositories.metadata.IvyMutableModuleMetadataFactory;
 import org.gradle.api.internal.artifacts.repositories.metadata.MavenMutableModuleMetadataFactory;
 import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransportFactory;
+import org.gradle.api.internal.artifacts.transform.ArtifactTransformActionScheme;
 import org.gradle.api.internal.artifacts.transform.ArtifactTransformListener;
+import org.gradle.api.internal.artifacts.transform.ArtifactTransformParameterScheme;
 import org.gradle.api.internal.artifacts.transform.ConsumerProvidedVariantFinder;
 import org.gradle.api.internal.artifacts.transform.DefaultArtifactTransforms;
 import org.gradle.api.internal.artifacts.transform.DefaultTransformerInvoker;
@@ -276,8 +278,8 @@ public class DefaultDependencyManagementServices implements DependencyManagement
             );
         }
 
-        VariantTransformRegistry createArtifactTransformRegistry(InstantiatorFactory instantiatorFactory, ImmutableAttributesFactory attributesFactory, IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, ServiceRegistry services, TransformerInvoker transformerInvoker, ValueSnapshotter valueSnapshotter, InspectionSchemeFactory inspectionSchemeFactory) {
-            return new DefaultVariantTransformRegistry(instantiatorFactory, attributesFactory, isolatableFactory, classLoaderHierarchyHasher, services, transformerInvoker, valueSnapshotter, inspectionSchemeFactory);
+        VariantTransformRegistry createArtifactTransformRegistry(InstantiatorFactory instantiatorFactory, ImmutableAttributesFactory attributesFactory, IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, ServiceRegistry services, TransformerInvoker transformerInvoker, ValueSnapshotter valueSnapshotter, InspectionSchemeFactory inspectionSchemeFactory, ArtifactTransformParameterScheme parameterScheme, ArtifactTransformActionScheme actionScheme) {
+            return new DefaultVariantTransformRegistry(instantiatorFactory, attributesFactory, isolatableFactory, classLoaderHierarchyHasher, services, transformerInvoker, valueSnapshotter, actionScheme, parameterScheme);
         }
 
         BaseRepositoryFactory createBaseRepositoryFactory(LocalMavenRepositoryLocator localMavenRepositoryLocator,

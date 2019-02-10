@@ -37,7 +37,6 @@ import org.gradle.internal.exceptions.DefaultMultiCauseException;
 import org.gradle.internal.hash.Hasher;
 import org.gradle.internal.hash.Hashing;
 import org.gradle.internal.instantiation.InstantiationScheme;
-import org.gradle.internal.instantiation.InstantiatorFactory;
 import org.gradle.internal.isolation.Isolatable;
 import org.gradle.internal.isolation.IsolatableFactory;
 import org.gradle.internal.snapshot.ValueSnapshot;
@@ -86,7 +85,7 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
         return new DefaultTransformationRegistration(from, to, new TransformationStep(transformer, transformerInvoker));
     }
 
-    public static VariantTransformRegistry.Registration create(ImmutableAttributes from, ImmutableAttributes to, Class<? extends ArtifactTransform> implementation, Object[] params, IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, InstantiatorFactory instantiatorFactory, TransformerInvoker transformerInvoker) {
+    public static VariantTransformRegistry.Registration create(ImmutableAttributes from, ImmutableAttributes to, Class<? extends ArtifactTransform> implementation, Object[] params, IsolatableFactory isolatableFactory, ClassLoaderHierarchyHasher classLoaderHierarchyHasher, InstantiationScheme instantiationScheme, TransformerInvoker transformerInvoker) {
         Hasher hasher = Hashing.newHasher();
         appendActionImplementation(classLoaderHierarchyHasher, hasher, implementation);
 
@@ -98,7 +97,7 @@ public class DefaultTransformationRegistration implements VariantTransformRegist
             throw new VariantTransformConfigurationException(String.format("Could not snapshot parameters values for transform %s: %s", ModelType.of(implementation).getDisplayName(), Arrays.asList(params)), e);
         }
         paramsSnapshot.appendToHasher(hasher);
-        Transformer transformer = new LegacyTransformer(implementation, paramsSnapshot, hasher.hash(), instantiatorFactory, from);
+        Transformer transformer = new LegacyTransformer(implementation, paramsSnapshot, hasher.hash(), instantiationScheme, from);
 
         return new DefaultTransformationRegistration(from, to, new TransformationStep(transformer, transformerInvoker));
     }
