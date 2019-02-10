@@ -28,12 +28,17 @@ public class UnableToDeleteFileException extends UncheckedIOException {
 
     private final File file;
 
+    /**
+     * Creates exception with file, a reasonable message is used.
+     */
     public UnableToDeleteFileException(File file) {
         super(toMessage(file));
         this.file = file;
     }
 
     /**
+     * Creates exception with file and message.
+     *
      * @since 5.3
      */
     @Incubating
