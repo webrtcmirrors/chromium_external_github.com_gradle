@@ -54,6 +54,7 @@ import org.gradle.internal.execution.impl.OutputFilterUtil;
 import org.gradle.internal.execution.impl.steps.UpToDateResult;
 import org.gradle.internal.fingerprint.CurrentFileCollectionFingerprint;
 import org.gradle.internal.fingerprint.FileCollectionFingerprint;
+import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger;
 import org.gradle.internal.operations.BuildOperationContext;
 import org.gradle.internal.operations.BuildOperationDescriptor;
 import org.gradle.internal.operations.BuildOperationExecutor;
@@ -335,6 +336,8 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
                 BuildOperationRef currentOperation = buildOperationExecutor.getCurrentOperation();
                 Throwable actionFailure = null;
                 try {
+                    decorateLogger(currentOperation, task.getLogger());
+
                     action.execute(task);
                 } catch (Throwable t) {
                     actionFailure = t;
@@ -371,10 +374,16 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
         });
     }
 
+    private void decorateLogger(BuildOperationRef currentOperation, Logger logger) {
+        OutputEventListenerBackedLogger delegate = (OutputEventListenerBackedLogger) logger;
+        delegate.setBuildOperation(currentOperation);
+    }
+
     @Contextual
     private static class MultipleTaskActionFailures extends DefaultMultiCauseException {
         public MultipleTaskActionFailures(String message, Iterable<? extends Throwable> causes) {
             super(message, causes);
         }
     }
+
 }

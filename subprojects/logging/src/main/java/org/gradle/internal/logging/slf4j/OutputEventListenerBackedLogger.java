@@ -21,6 +21,7 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.internal.logging.events.LogEvent;
 import org.gradle.internal.logging.events.OutputEventListener;
+import org.gradle.internal.operations.BuildOperationRef;
 import org.gradle.internal.operations.CurrentBuildOperationRef;
 import org.gradle.internal.operations.OperationIdentifier;
 import org.gradle.internal.time.Clock;
@@ -33,6 +34,7 @@ public class OutputEventListenerBackedLogger implements Logger {
     private final String name;
     private final OutputEventListenerBackedLoggerContext context;
     private final Clock clock;
+    private OperationIdentifier fallbackBuildOperationId;
 
     public OutputEventListenerBackedLogger(String name, OutputEventListenerBackedLoggerContext context, Clock clock) {
         this.name = name;
@@ -130,6 +132,9 @@ public class OutputEventListenerBackedLogger implements Logger {
 
     private void log(LogLevel logLevel, Throwable throwable, String message) {
         OperationIdentifier buildOperationId = CurrentBuildOperationRef.instance().getId();
+        if(buildOperationId == null) {
+            buildOperationId = fallbackBuildOperationId;
+        }
         LogEvent logEvent = new LogEvent(clock.getCurrentTime(), name, logLevel, message, throwable, buildOperationId);
         OutputEventListener outputEventListener = context.getOutputEventListener();
         try {
@@ -475,5 +480,9 @@ public class OutputEventListenerBackedLogger implements Logger {
         if (isErrorEnabled(marker)) {
             log(LogLevel.ERROR, t, msg);
         }
+    }
+
+    public void setBuildOperation(BuildOperationRef currentOperation) {
+        this.fallbackBuildOperationId = currentOperation.getId();
     }
 }

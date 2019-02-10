@@ -83,7 +83,7 @@ class BuildOperationExecutorIntegrationTest extends AbstractIntegrationSpec {
             
             task checkOpId() {
                 doLast() {
-                    file(resultFile) << gradle.services.get(BuildOperationExecutor).currentOperation.id
+                    file(resultFile) << gradle.services.get(BuildOperationExecutor).fallbackBuildOperationId.id
                 }
             }
             

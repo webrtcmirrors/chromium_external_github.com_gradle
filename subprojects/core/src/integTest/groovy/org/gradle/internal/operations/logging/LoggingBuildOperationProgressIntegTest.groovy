@@ -78,9 +78,9 @@ class LoggingBuildOperationProgressIntegTest extends AbstractIntegrationSpec {
             }
             
             classes.doLast {
+                println logger
                 CountDownLatch latch = new CountDownLatch(1);
-
-                def t = new Thread({ println 'from classes task external thread'; latch.countDown(); } as Runnable)
+                def t = new Thread({ logger.lifecycle('from classes task external thread'); latch.countDown(); } as Runnable)
                 t.start()  // Output: hello
                 latch.await();
             }
