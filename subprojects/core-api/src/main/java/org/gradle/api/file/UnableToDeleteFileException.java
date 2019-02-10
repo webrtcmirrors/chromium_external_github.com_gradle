@@ -30,7 +30,11 @@ public class UnableToDeleteFileException extends UncheckedIOException {
     public UnableToDeleteFileException(File file) {
         super(toMessage(file));
         this.file = file;
+    }
 
+    public UnableToDeleteFileException(File file, String message) {
+        super(message);
+        this.file = file;
     }
 
     public File getFile() {
