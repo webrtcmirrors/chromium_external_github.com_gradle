@@ -165,7 +165,7 @@ class ArtifactTransformWithFileInputsIntegrationTest extends AbstractDependencyR
                 
                 void transform(ArtifactTransformOutputs outputs) {
                     println "processing \${input.name} wit MakeRedAction"
-                    def output = outputs.registerOutput(input.name + ".red")
+                    def output = outputs.file(input.name + ".red")
                     output.text = "ok"
                 }
             }
