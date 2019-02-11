@@ -70,7 +70,7 @@ public class DefaultVariantTransformRegistry implements VariantTransformRegistry
         this.valueSnapshotter = valueSnapshotter;
         this.instantiatorFactory = instantiatorFactory;
         this.actionInstantiationScheme = actionScheme.getInstantiationScheme();
-        this.legacyActionInstantiationScheme = actionScheme.getInstantiationScheme();
+        this.legacyActionInstantiationScheme = actionScheme.getLegacyInstantiationScheme();
         this.actionMetadataStore = actionScheme.getInspectionScheme().getMetadataStore();
         this.parametersInstantiationScheme = parameterScheme.getInstantiationScheme();
         this.parametersObjectPropertyWalker = parameterScheme.getInspectionScheme().getPropertyWalker();
